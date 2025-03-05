@@ -74,7 +74,6 @@ class TurnComponent:
 
 class DeckSystem(esper.Processor):
     def __init__(self):
-        super().__init__()
         self.deck: List[Card] = []
 
     def process(self):
@@ -101,12 +100,11 @@ class DeckSystem(esper.Processor):
 
 class DealSystem(esper.Processor):
     def __init__(self, deck_system: DeckSystem):
-        super().__init__()
         self.deck_system = deck_system
 
     def process(self):
         # 查找TurnComponent并检查是否在发牌阶段
-        for ent, turn in self.world.get_component(TurnComponent):
+        for ent, turn in esper.get_component(TurnComponent):
             if turn.is_dealing:
                 # 检查是否还有牌可以发
                 if self.deck_system.deck:
@@ -114,7 +112,7 @@ class DealSystem(esper.Processor):
                     current_player = turn.current_player
 
                     # 给当前玩家发一张牌
-                    for player_ent, (player, hand) in self.world.get_components(PlayerComponent, Hand):
+                    for player_ent, (player, hand) in esper.get_components(PlayerComponent, Hand):
                         if player_ent == current_player:
                             card = self.deck_system.draw_card()
                             if card:
@@ -135,12 +133,12 @@ class DealSystem(esper.Processor):
 class PlaySystem(esper.Processor):
     def process(self):
         # 查找TurnComponent并检查是否在出牌阶段
-        for ent, turn in self.world.get_component(TurnComponent):
+        for ent, turn in esper.get_component(TurnComponent):
             if turn.is_playing:
                 current_player = turn.current_player
 
                 # 找到当前玩家
-                for player_ent, (player, hand, team) in self.world.get_components(PlayerComponent, Hand, TeamComponent):
+                for player_ent, (player, hand, team) in esper.get_components(PlayerComponent, Hand, TeamComponent):
                     if player_ent == current_player:
                         if hand.cards:
                             if player.is_ai:
@@ -185,52 +183,50 @@ class PlaySystem(esper.Processor):
 
 class GoujiGame:
     def __init__(self):
-        self.world = esper.World()
         self.deck_system = DeckSystem()
         self.deal_system = DealSystem(self.deck_system)
         self.play_system = PlaySystem()
 
         # 添加处理器
-        self.world.add_processor(self.deck_system)
-        self.world.add_processor(self.deal_system)
-        self.world.add_processor(self.play_system)
+        esper.add_processor(self.deck_system)
+        esper.add_processor(self.deal_system)
+        esper.add_processor(self.play_system)
 
         # 创建玩家
         self.create_players()
 
         # 创建回合控制
-        turn_entity = self.world.create_entity()
+        turn_entity = esper.create_entity()
         # 随机选择一个玩家开始抽牌
-        self.world.add_component(turn_entity, TurnComponent(
+        esper.add_component(turn_entity, TurnComponent(
             current_player=random.randint(0, 5)))
 
     def create_players(self):
         # 创建6个玩家，交替分配队伍
         for i in range(6):
-            player_entity = self.world.create_entity()
+            player_entity = esper.create_entity()
 
             # 配置是否为AI (假设0号玩家是人类)
             is_ai = (i != 0)
             name = f"Player{i}" if is_ai else "玩家"
 
-            self.world.add_component(
-                player_entity, PlayerComponent(name, is_ai))
-            self.world.add_component(player_entity, Hand())
+            esper.add_component(player_entity, PlayerComponent(name, is_ai))
+            esper.add_component(player_entity, Hand())
 
             # 交替分配队伍 (0,2,4为A队；1,3,5为B队)
             team = Team.A if i % 2 == 0 else Team.B
-            self.world.add_component(player_entity, TeamComponent(team))
+            esper.add_component(player_entity, TeamComponent(team))
 
     def run(self):
         print("够级游戏开始！")
 
         # 初始牌组
-        self.world.process()
+        esper.process()
 
         # 游戏主循环
         while True:
             try:
-                self.world.process()
+                esper.process()
                 # 简单延迟，避免输出太快
                 if input("按Enter键继续，输入q退出: ").lower() == 'q':
                     break
