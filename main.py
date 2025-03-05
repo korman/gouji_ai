@@ -64,8 +64,9 @@ class Hand:
 
 
 class PlayerComponent:
-    def __init__(self, name: str, is_ai: bool = False):
+    def __init__(self, name: str, player_id: int, is_ai: bool = False):
         self.name = name
+        self.player_id = player_id  # 添加player_id来跟踪玩家ID
         self.is_ai = is_ai
 
 
@@ -76,10 +77,9 @@ class TeamComponent:
 
 class GameStateComponent:
     def __init__(self):
-        self.current_player = 0
+        self.current_player_id = 0  # 当前玩家的ID（不是实体ID）
         self.phase = "dealing"  # "dealing" 或 "playing"
         self.human_player_id = 0  # 记录人类玩家的ID
-        self.display_hand_for_human = False  # 标记需要为人类玩家显示手牌
 
 # 系统定义
 
@@ -114,9 +114,8 @@ class DeckSystem(esper.Processor):
 
 
 class DealSystem(esper.Processor):
-    def __init__(self, deck_system: DeckSystem, play_system):
+    def __init__(self, deck_system: DeckSystem):
         self.deck_system = deck_system
-        self.play_system = play_system  # 添加对PlaySystem的引用
         self.dealt = False
 
     def process(self):
@@ -128,16 +127,23 @@ class DealSystem(esper.Processor):
             # 发牌完成后切换到出牌阶段
             for _, game_state in esper.get_component(GameStateComponent):
                 game_state.phase = "playing"
-                game_state.current_player = random.randint(0, 5)
-                print(f"\n发牌完成! Player{game_state.current_player} 开始出牌\n")
+                game_state.current_player_id = random.randint(0, 5)
 
-                # 检查第一个出牌的是否是人类玩家
-                if game_state.current_player == game_state.human_player_id:
-                    print("\n轮到您出牌了!")
-                    game_state.display_hand_for_human = True  # 设置标记，需要显示手牌
-                else:
-                    # 如果第一个出牌的不是人类玩家，提前告知玩家
-                    print(f"等待 Player{game_state.current_player} 出牌...")
+                # 找到开始玩家的名称
+                player_name = self.get_player_name_by_id(
+                    game_state.current_player_id)
+                print(f"\n发牌完成! {player_name} 开始出牌\n")
+
+                # 如果第一个出牌的不是人类玩家，提示等待
+                if game_state.current_player_id != game_state.human_player_id:
+                    print(f"等待 {player_name} 出牌...")
+
+    def get_player_name_by_id(self, player_id):
+        """根据玩家ID获取玩家名称"""
+        for _, player in esper.get_component(PlayerComponent):
+            if player.player_id == player_id:
+                return player.name
+        return f"Player{player_id}"  # 默认名称
 
     def deal_all_cards(self):
         # 获取所有玩家
@@ -177,48 +183,76 @@ class PlaySystem(esper.Processor):
         # 只有在出牌阶段才处理
         for _, game_state in esper.get_component(GameStateComponent):
             if game_state.phase == "playing":
-                # 检查是否需要显示人类玩家的手牌
-                if game_state.display_hand_for_human:
-                    self.show_human_player_hand()
-                    game_state.display_hand_for_human = False  # 重置标记
+                # 轮到人类玩家，显示手牌
+                if game_state.current_player_id == game_state.human_player_id:
+                    self.handle_human_turn(game_state)
+                else:
+                    # AI玩家出牌
+                    self.handle_ai_turn(game_state)
 
-                current_player = game_state.current_player
+    def handle_human_turn(self, game_state):
+        """处理人类玩家回合"""
+        human_entity = self.get_player_entity_by_id(game_state.human_player_id)
 
-                # 找到当前玩家
-                for player_ent, (player, hand, team) in esper.get_components(PlayerComponent, Hand, TeamComponent):
-                    if player_ent == current_player:
-                        if hand.cards:
-                            if player.is_ai:
-                                # AI随机出牌
-                                card_index = random.randint(
-                                    0, len(hand.cards) - 1)
-                                played_card = hand.cards.pop(card_index)
-                                print(
-                                    f"\n{player.name} ({team.team.name}队) 打出了: {played_card}")
+        if human_entity is not None:
+            player, hand, team = esper.get_components(
+                PlayerComponent, Hand, TeamComponent)[human_entity]
 
-                                # 每次AI出牌后，检查下一个玩家是否是人类
-                                next_player = (current_player + 1) % 6
-                                if next_player == game_state.human_player_id:
-                                    print("\n轮到您出牌了!")
-                                    game_state.display_hand_for_human = True  # 设置标记，需要显示手牌
-                            else:
-                                # 玩家手动出牌前显示手牌
-                                self.display_hand(player, hand)
-                                self.player_play_card(player, hand, team)
-                        else:
-                            print(f"\n{player.name} 没有牌了!")
+            # 显示玩家手牌
+            self.display_hand(player, hand)
 
-                        # 更新下一个玩家
-                        game_state.current_player = (current_player + 1) % 6
-                        break
+            # 让玩家出牌
+            if hand.cards:
+                self.player_play_card(player, hand, team)
+            else:
+                print(f"\n{player.name} 没有牌了!")
 
-    def show_human_player_hand(self):
-        """显示人类玩家的手牌"""
-        for ent, (player, hand) in esper.get_components(PlayerComponent, Hand):
-            if not player.is_ai:
-                # 显示手牌
-                self.display_hand(player, hand)
-                break
+            # 更新下一个玩家
+            game_state.current_player_id = (
+                game_state.current_player_id + 1) % 6
+
+            # 提示等待下一个AI玩家
+            next_player_name = self.get_player_name_by_id(
+                game_state.current_player_id)
+            print(f"\n等待 {next_player_name} 出牌...")
+
+    def handle_ai_turn(self, game_state):
+        """处理AI玩家回合"""
+        ai_entity = self.get_player_entity_by_id(game_state.current_player_id)
+
+        if ai_entity is not None:
+            player, hand, team = esper.get_components(
+                PlayerComponent, Hand, TeamComponent)[ai_entity]
+
+            # AI随机出牌
+            if hand.cards:
+                card_index = random.randint(0, len(hand.cards) - 1)
+                played_card = hand.cards.pop(card_index)
+                print(f"\n{player.name} ({team.team.name}队) 打出了: {played_card}")
+            else:
+                print(f"\n{player.name} 没有牌了!")
+
+            # 更新下一个玩家
+            game_state.current_player_id = (
+                game_state.current_player_id + 1) % 6
+
+            # 如果下一个玩家是人类，提示并显示手牌
+            if game_state.current_player_id == game_state.human_player_id:
+                print(f"\n轮到您出牌了!")
+
+    def get_player_entity_by_id(self, player_id):
+        """根据玩家ID获取玩家实体"""
+        for ent, player in esper.get_component(PlayerComponent):
+            if player.player_id == player_id:
+                return ent
+        return None
+
+    def get_player_name_by_id(self, player_id):
+        """根据玩家ID获取玩家名称"""
+        for _, player in esper.get_component(PlayerComponent):
+            if player.player_id == player_id:
+                return player.name
+        return f"Player{player_id}"  # 默认名称
 
     def display_hand(self, player: PlayerComponent, hand: Hand):
         print(f"\n{player.name} 的手牌:")
@@ -333,23 +367,22 @@ class GoujiGame:
         # 重置esper世界状态（防止重复运行时的问题）
         esper.clear_database()
 
-        # 初始化游戏系统（注意构造顺序）
-        self.deck_system = DeckSystem()
-        self.play_system = PlaySystem()  # 先创建PlaySystem
-        self.deal_system = DealSystem(
-            self.deck_system, self.play_system)  # 然后将它传给DealSystem
-
-        # 添加处理器
-        esper.add_processor(self.deck_system)
-        esper.add_processor(self.deal_system)
-        esper.add_processor(self.play_system)
-
         # 创建游戏状态
         game_state_entity = esper.create_entity()
         esper.add_component(game_state_entity, GameStateComponent())
 
         # 创建玩家
         self.create_players()
+
+        # 初始化游戏系统
+        self.deck_system = DeckSystem()
+        self.deal_system = DealSystem(self.deck_system)
+        self.play_system = PlaySystem()
+
+        # 添加处理器
+        esper.add_processor(self.deck_system)
+        esper.add_processor(self.deal_system)
+        esper.add_processor(self.play_system)
 
     def create_players(self):
         # 创建6个玩家，交替分配队伍
@@ -358,9 +391,9 @@ class GoujiGame:
 
             # 配置是否为AI (假设0号玩家是人类)
             is_ai = (i != 0)
-            name = f"Player{i}" if is_ai else "玩家"
+            name = f"玩家" if i == 0 else f"Player{i}"
 
-            esper.add_component(player_entity, PlayerComponent(name, is_ai))
+            esper.add_component(player_entity, PlayerComponent(name, i, is_ai))
             esper.add_component(player_entity, Hand())
 
             # 交替分配队伍 (0,2,4为A队；1,3,5为B队)
