@@ -79,6 +79,7 @@ class GameStateComponent:
         self.current_player = 0
         self.phase = "dealing"  # "dealing" 或 "playing"
         self.human_player_id = 0  # 记录人类玩家的ID
+        self.is_first_round = True  # 标记是否是第一轮
 
 # 系统定义
 
@@ -113,8 +114,9 @@ class DeckSystem(esper.Processor):
 
 
 class DealSystem(esper.Processor):
-    def __init__(self, deck_system: DeckSystem):
+    def __init__(self, deck_system: DeckSystem, play_system):
         self.deck_system = deck_system
+        self.play_system = play_system  # 添加对PlaySystem的引用
         self.dealt = False
 
     def process(self):
@@ -128,6 +130,17 @@ class DealSystem(esper.Processor):
                 game_state.phase = "playing"
                 game_state.current_player = random.randint(0, 5)
                 print(f"\n发牌完成! Player{game_state.current_player} 开始出牌\n")
+
+                # 显示人类玩家的手牌
+                self.show_human_player_hand()
+
+    def show_human_player_hand(self):
+        """显示人类玩家的手牌"""
+        for ent, (player, hand) in esper.get_components(PlayerComponent, Hand):
+            if not player.is_ai:
+                # 使用PlaySystem的display_hand方法显示手牌
+                self.play_system.display_hand(player, hand)
+                break
 
     def deal_all_cards(self):
         # 获取所有玩家
@@ -315,10 +328,11 @@ class PlaySystem(esper.Processor):
 
 class GoujiGame:
     def __init__(self):
-        # 初始化游戏系统
+        # 初始化游戏系统（注意构造顺序）
         self.deck_system = DeckSystem()
-        self.deal_system = DealSystem(self.deck_system)
-        self.play_system = PlaySystem()
+        self.play_system = PlaySystem()  # 先创建PlaySystem
+        self.deal_system = DealSystem(
+            self.deck_system, self.play_system)  # 然后将它传给DealSystem
 
         # 添加处理器
         esper.add_processor(self.deck_system)
