@@ -132,8 +132,12 @@ class DealSystem(esper.Processor):
             print(f"错误: 需要6个玩家，但找到了{len(players)}个")
             return
 
-        # 每个玩家获得相同数量的牌
-        cards_per_player = 34  # 根据您的截图，每人34张牌
+        # 计算每个玩家应得的牌数
+        total_cards = len(self.deck_system.deck)
+        cards_per_player = total_cards // 6  # 应该是36张
+
+        print(f"# 每个玩家获得相同数量的牌")
+        print(f"cards_per_player = {cards_per_player}  # 4副牌(216张)÷6名玩家=36张/人")
 
         # 为每个玩家分配牌
         for i, (ent, player, hand) in enumerate(players):
@@ -204,6 +208,9 @@ class PlaySystem(esper.Processor):
                     print("无效的牌索引，请重试。")
             except ValueError:
                 print("请输入有效的数字。")
+            except KeyboardInterrupt:
+                print("\n游戏中断")
+                return
 
 # 游戏初始化和运行
 
