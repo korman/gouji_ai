@@ -2,7 +2,6 @@ import esper
 import random
 from enum import Enum, auto
 from typing import List, Tuple
-import sys
 
 # 定义扑克牌的花色和点数
 
@@ -41,7 +40,7 @@ class Card:
     def __init__(self, suit: Suit, rank: Rank, deck_id: int):
         self.suit = suit
         self.rank = rank
-        self.deck_id = deck_id  # 标识是哪一副牌
+        self.deck_id = deck_id
 
     def __str__(self):
         return f"{self.suit.value}{self.rank.value}"
@@ -63,11 +62,10 @@ class TeamComponent:
         self.team = team
 
 
-class TurnComponent:
-    def __init__(self, current_player: int = 0):
-        self.current_player = current_player
-        self.is_dealing = True  # 是否在发牌阶段
-        self.is_playing = False  # 是否在出牌阶段
+class GameStateComponent:
+    def __init__(self):
+        self.current_player = 0
+        self.phase = "dealing"  # "dealing" 或 "playing"
 
 # 系统定义
 
@@ -75,12 +73,13 @@ class TurnComponent:
 class DeckSystem(esper.Processor):
     def __init__(self):
         self.deck: List[Card] = []
+        self.initialized = False
 
     def process(self):
-        # 只在初始化时执行一次
-        if not self.deck:
+        if not self.initialized:
             self.create_deck()
             self.shuffle_deck()
+            self.initialized = True
 
     def create_deck(self):
         # 创建4副牌 (不含大小王)
@@ -88,54 +87,60 @@ class DeckSystem(esper.Processor):
             for suit in Suit:
                 for rank in Rank:
                     self.deck.append(Card(suit, rank, deck_id))
+        print(f"创建了 {len(self.deck)} 张牌")
 
     def shuffle_deck(self):
         random.shuffle(self.deck)
-
-    def draw_card(self) -> Card:
-        if self.deck:
-            return self.deck.pop()
-        return None
 
 
 class DealSystem(esper.Processor):
     def __init__(self, deck_system: DeckSystem):
         self.deck_system = deck_system
+        self.dealt = False
 
     def process(self):
-        # 查找TurnComponent并检查是否在发牌阶段
-        for ent, turn in esper.get_component(TurnComponent):
-            if turn.is_dealing:
-                # 检查是否还有牌可以发
-                if self.deck_system.deck:
-                    # 获取当前玩家
-                    current_player = turn.current_player
+        # 只在第一次运行时发牌
+        if not self.dealt:
+            self.deal_all_cards()
+            self.dealt = True
 
-                    # 给当前玩家发一张牌
-                    for player_ent, (player, hand) in esper.get_components(PlayerComponent, Hand):
-                        if player_ent == current_player:
-                            card = self.deck_system.draw_card()
-                            if card:
-                                hand.cards.append(card)
-                                print(f"{player.name} 抽到了: {card}")
+            # 发牌完成后切换到出牌阶段
+            for _, game_state in esper.get_component(GameStateComponent):
+                game_state.phase = "playing"
+                game_state.current_player = random.randint(0, 5)
+                print(f"\n发牌完成! Player{game_state.current_player} 开始出牌\n")
 
-                            # 更新下一个玩家
-                            turn.current_player = (current_player + 1) % 6
-                            break
-                else:
-                    # 所有牌发完，进入出牌阶段
-                    turn.is_dealing = False
-                    turn.is_playing = True
-                    turn.current_player = random.randint(0, 5)  # 随机选择一个玩家开始出牌
-                    print(f"发牌完成，随机选择 Player{turn.current_player} 开始出牌")
+    def deal_all_cards(self):
+        # 获取所有玩家
+        players = []
+        for ent, (player, hand) in esper.get_components(PlayerComponent, Hand):
+            players.append((ent, player, hand))
+
+        # 确保有6个玩家
+        if len(players) != 6:
+            print(f"错误: 需要6个玩家，但找到了{len(players)}个")
+            return
+
+        # 每个玩家36张牌
+        cards_per_player = len(self.deck_system.deck) // 6
+        print(f"每位玩家将获得 {cards_per_player} 张牌")
+
+        # 为每个玩家分配牌
+        for i, (ent, player, hand) in enumerate(players):
+            hand.cards = self.deck_system.deck[i *
+                                               cards_per_player:(i + 1) * cards_per_player]
+            print(f"{player.name} 获得了 {len(hand.cards)} 张牌")
+
+        # 清空牌组
+        self.deck_system.deck = []
 
 
 class PlaySystem(esper.Processor):
     def process(self):
-        # 查找TurnComponent并检查是否在出牌阶段
-        for ent, turn in esper.get_component(TurnComponent):
-            if turn.is_playing:
-                current_player = turn.current_player
+        # 只有在出牌阶段才处理
+        for _, game_state in esper.get_component(GameStateComponent):
+            if game_state.phase == "playing":
+                current_player = game_state.current_player
 
                 # 找到当前玩家
                 for player_ent, (player, hand, team) in esper.get_components(PlayerComponent, Hand, TeamComponent):
@@ -156,13 +161,19 @@ class PlaySystem(esper.Processor):
                             print(f"{player.name} 没有牌了!")
 
                         # 更新下一个玩家
-                        turn.current_player = (current_player + 1) % 6
+                        game_state.current_player = (current_player + 1) % 6
                         break
 
     def display_hand(self, player: PlayerComponent, hand: Hand):
         print(f"\n{player.name} 的手牌:")
-        for i, card in enumerate(hand.cards):
-            print(f"{i}: {card}", end=", " if (i + 1) % 10 != 0 else "\n")
+        cards_per_row = 10
+        for i in range(0, len(hand.cards), cards_per_row):
+            row_cards = hand.cards[i:i+cards_per_row]
+            indices = [f"{j:2d}" for j in range(i, i+len(row_cards))]
+            cards = [f"{card}" for card in row_cards]
+
+            print(" ".join(indices))
+            print(" ".join(cards))
         print()
 
     def player_play_card(self, player: PlayerComponent, hand: Hand, team: TeamComponent):
@@ -183,6 +194,7 @@ class PlaySystem(esper.Processor):
 
 class GoujiGame:
     def __init__(self):
+        # 初始化游戏系统
         self.deck_system = DeckSystem()
         self.deal_system = DealSystem(self.deck_system)
         self.play_system = PlaySystem()
@@ -192,14 +204,12 @@ class GoujiGame:
         esper.add_processor(self.deal_system)
         esper.add_processor(self.play_system)
 
+        # 创建游戏状态
+        game_state_entity = esper.create_entity()
+        esper.add_component(game_state_entity, GameStateComponent())
+
         # 创建玩家
         self.create_players()
-
-        # 创建回合控制
-        turn_entity = esper.create_entity()
-        # 随机选择一个玩家开始抽牌
-        esper.add_component(turn_entity, TurnComponent(
-            current_player=random.randint(0, 5)))
 
     def create_players(self):
         # 创建6个玩家，交替分配队伍
@@ -220,15 +230,14 @@ class GoujiGame:
     def run(self):
         print("够级游戏开始！")
 
-        # 初始牌组
-        esper.process()
-
         # 游戏主循环
+        esper.process()  # 处理发牌
+
         while True:
             try:
-                esper.process()
-                # 简单延迟，避免输出太快
-                if input("按Enter键继续，输入q退出: ").lower() == 'q':
+                esper.process()  # 处理出牌
+                input_text = input("按Enter继续，输入q退出: ")
+                if input_text.lower() == 'q':
                     break
             except KeyboardInterrupt:
                 break
