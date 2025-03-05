@@ -1,7 +1,8 @@
 import esper
 import random
 from enum import Enum, auto
-from typing import List, Tuple
+from typing import List, Tuple, Dict
+from collections import defaultdict
 
 # 定义扑克牌的花色和点数
 
@@ -49,6 +50,12 @@ class Card:
         if self.rank in [Rank.RED_JOKER, Rank.BLACK_JOKER]:
             return self.rank.value
         return f"{self.suit.value}{self.rank.value}"
+
+    def get_rank_display(self):
+        """只返回牌的点数，用于简化显示"""
+        if self.rank in [Rank.RED_JOKER, Rank.BLACK_JOKER]:
+            return self.rank.value
+        return self.rank.value
 
 
 class Hand:
@@ -136,8 +143,7 @@ class DealSystem(esper.Processor):
         total_cards = len(self.deck_system.deck)
         cards_per_player = total_cards // 6  # 应该是36张
 
-        print(f"# 每个玩家获得相同数量的牌")
-        print(f"cards_per_player = {cards_per_player}  # 4副牌(216张)÷6名玩家=36张/人")
+        print(f"每位玩家获得 {cards_per_player} 张牌")
 
         # 为每个玩家分配牌
         for i, (ent, player, hand) in enumerate(players):
@@ -186,31 +192,97 @@ class PlaySystem(esper.Processor):
 
     def display_hand(self, player: PlayerComponent, hand: Hand):
         print(f"\n{player.name} 的手牌:")
+        # 只显示牌面值
+        cards = [card.get_rank_display() for card in hand.cards]
         cards_per_row = 10
-        for i in range(0, len(hand.cards), cards_per_row):
-            row_cards = hand.cards[i:i+cards_per_row]
-            indices = [f"{j:2d}" for j in range(i, i+len(row_cards))]
-            cards = [f"{card}" for card in row_cards]
 
-            print(" ".join(indices))
-            print(" ".join(cards))
+        for i in range(0, len(cards), cards_per_row):
+            row_cards = cards[i:i+cards_per_row]
+            print(" ".join(row_cards))
         print()
 
     def player_play_card(self, player: PlayerComponent, hand: Hand, team: TeamComponent):
         while True:
             try:
-                idx = int(input(f"请选择要出的牌 (0-{len(hand.cards) - 1}): "))
-                if 0 <= idx < len(hand.cards):
-                    played_card = hand.cards.pop(idx)
-                    print(f"{player.name} ({team.team.name}队) 打出了: {played_card}")
-                    break
+                # 获取用户输入的牌面值
+                card_input = input("请输入要出的牌 (例如: Q 或 QQ 或 大王): ").strip()
+                if not card_input:
+                    print("输入为空，请重新输入。")
+                    continue
+
+                # 计算手牌中每种牌面值的数量
+                card_counts = self.count_cards_by_rank(hand.cards)
+
+                # 判断输入是多张相同牌还是单张牌
+                if len(set(card_input)) == 1 and len(card_input) > 1:
+                    # 多张相同牌，例如"QQ"
+                    rank_value = card_input[0]
+                    count = len(card_input)
+
+                    # 对大小王做特殊处理
+                    if rank_value == "大" and "大王" in card_counts and card_counts["大王"] >= count:
+                        played_cards = self.find_cards_by_rank(
+                            hand.cards, "大王", count)
+                    elif rank_value == "小" and "小王" in card_counts and card_counts["小王"] >= count:
+                        played_cards = self.find_cards_by_rank(
+                            hand.cards, "小王", count)
+                    # 常规牌
+                    elif rank_value in card_counts and card_counts[rank_value] >= count:
+                        played_cards = self.find_cards_by_rank(
+                            hand.cards, rank_value, count)
+                    else:
+                        print(f"您没有{count}张{rank_value}牌。")
+                        continue
                 else:
-                    print("无效的牌索引，请重试。")
+                    # 处理单张牌或特殊输入(大王/小王)
+                    if card_input == "大王" and "大王" in card_counts:
+                        played_cards = self.find_cards_by_rank(
+                            hand.cards, "大王", 1)
+                    elif card_input == "小王" and "小王" in card_counts:
+                        played_cards = self.find_cards_by_rank(
+                            hand.cards, "小王", 1)
+                    elif len(card_input) == 1 and card_input in card_counts:
+                        played_cards = self.find_cards_by_rank(
+                            hand.cards, card_input, 1)
+                    else:
+                        print(f"您没有这样的牌：{card_input}")
+                        continue
+
+                # 从手牌中移除打出的牌
+                for card in played_cards:
+                    hand.cards.remove(card)
+
+                # 显示打出的牌
+                if len(played_cards) == 1:
+                    print(
+                        f"{player.name} ({team.team.name}队) 打出了: {played_cards[0]}")
+                else:
+                    ranks = [card.get_rank_display() for card in played_cards]
+                    print(
+                        f"{player.name} ({team.team.name}队) 打出了: {' '.join(ranks)}")
+                break
+
             except ValueError:
-                print("请输入有效的数字。")
+                print("无效的输入，请重试。")
             except KeyboardInterrupt:
                 print("\n游戏中断")
                 return
+
+    def count_cards_by_rank(self, cards: List[Card]) -> Dict[str, int]:
+        """统计手牌中每种牌面值的数量"""
+        counts = defaultdict(int)
+        for card in cards:
+            rank = card.get_rank_display()
+            counts[rank] += 1
+        return counts
+
+    def find_cards_by_rank(self, cards: List[Card], rank: str, count: int) -> List[Card]:
+        """查找指定数量的特定牌面值的牌"""
+        result = []
+        for card in cards:
+            if card.get_rank_display() == rank and len(result) < count:
+                result.append(card)
+        return result
 
 # 游戏初始化和运行
 
