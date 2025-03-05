@@ -61,6 +61,7 @@ class Card:
 class Hand:
     def __init__(self):
         self.cards: List[Card] = []
+        self.sorted: bool = False  # 添加标记表示是否已排序
 
 
 class PlayerComponent:
@@ -124,6 +125,9 @@ class DealSystem(esper.Processor):
             self.deal_all_cards()
             self.dealt = True
 
+            # 发牌完成后，先展示人类玩家的手牌
+            self.display_human_player_cards()
+
             # 发牌完成后切换到出牌阶段
             for _, game_state in esper.get_component(GameStateComponent):
                 game_state.phase = "playing"
@@ -138,12 +142,56 @@ class DealSystem(esper.Processor):
                 if game_state.current_player_id != game_state.human_player_id:
                     print(f"等待 {player_name} 出牌...")
 
+    def display_human_player_cards(self):
+        """在游戏开始时就显示人类玩家的手牌"""
+        for _, game_state in esper.get_component(GameStateComponent):
+            human_player_id = game_state.human_player_id
+            human_entity = self.get_player_entity_by_id(human_player_id)
+
+            if human_entity is not None:
+                player = esper.component_for_entity(
+                    human_entity, PlayerComponent)
+                hand = esper.component_for_entity(human_entity, Hand)
+
+                print("\n您的初始手牌:")
+                self.sort_and_display_hand(player, hand)
+
+    def sort_and_display_hand(self, player: PlayerComponent, hand: Hand):
+        """对手牌进行排序并显示"""
+        # 对手牌进行排序，便于阅读
+        sorted_cards = sorted(hand.cards, key=lambda card: (
+            0 if card.rank == Rank.RED_JOKER else
+            1 if card.rank == Rank.BLACK_JOKER else 2,
+            list(Rank).index(
+                card.rank) if card.rank != Rank.RED_JOKER and card.rank != Rank.BLACK_JOKER else 0
+        ))
+
+        # 只显示牌面值
+        cards = [card.get_rank_display() for card in sorted_cards]
+        cards_per_row = 10
+
+        for i in range(0, len(cards), cards_per_row):
+            row_cards = cards[i:i+cards_per_row]
+            print(" ".join(row_cards))
+        print()
+
+        # 更新手牌以保持排序状态
+        hand.cards = sorted_cards
+        hand.sorted = True
+
     def get_player_name_by_id(self, player_id):
         """根据玩家ID获取玩家名称"""
         for _, player in esper.get_component(PlayerComponent):
             if player.player_id == player_id:
                 return player.name
         return f"Player{player_id}"  # 默认名称
+
+    def get_player_entity_by_id(self, player_id):
+        """根据玩家ID获取玩家实体"""
+        for ent, player in esper.get_component(PlayerComponent):
+            if player.player_id == player_id:
+                return ent
+        return None
 
     def deal_all_cards(self):
         # 获取所有玩家
@@ -195,8 +243,10 @@ class PlaySystem(esper.Processor):
         human_entity = self.get_player_entity_by_id(game_state.human_player_id)
 
         if human_entity is not None:
-            player, hand, team = esper.get_components(
-                PlayerComponent, Hand, TeamComponent)[human_entity]
+            # 正确地获取各个组件
+            player = esper.component_for_entity(human_entity, PlayerComponent)
+            hand = esper.component_for_entity(human_entity, Hand)
+            team = esper.component_for_entity(human_entity, TeamComponent)
 
             # 显示玩家手牌
             self.display_hand(player, hand)
@@ -221,8 +271,10 @@ class PlaySystem(esper.Processor):
         ai_entity = self.get_player_entity_by_id(game_state.current_player_id)
 
         if ai_entity is not None:
-            player, hand, team = esper.get_components(
-                PlayerComponent, Hand, TeamComponent)[ai_entity]
+            # 正确地获取各个组件
+            player = esper.component_for_entity(ai_entity, PlayerComponent)
+            hand = esper.component_for_entity(ai_entity, Hand)
+            team = esper.component_for_entity(ai_entity, TeamComponent)
 
             # AI随机出牌
             if hand.cards:
@@ -256,25 +308,25 @@ class PlaySystem(esper.Processor):
 
     def display_hand(self, player: PlayerComponent, hand: Hand):
         print(f"\n{player.name} 的手牌:")
-        # 对手牌进行排序，便于阅读
-        sorted_cards = sorted(hand.cards, key=lambda card: (
-            0 if card.rank == Rank.RED_JOKER else
-            1 if card.rank == Rank.BLACK_JOKER else 2,
-            list(Rank).index(
-                card.rank) if card.rank != Rank.RED_JOKER and card.rank != Rank.BLACK_JOKER else 0
-        ))
+
+        # 对手牌进行排序，便于阅读（如果尚未排序）
+        if not hand.sorted:
+            hand.cards = sorted(hand.cards, key=lambda card: (
+                0 if card.rank == Rank.RED_JOKER else
+                1 if card.rank == Rank.BLACK_JOKER else 2,
+                list(Rank).index(
+                    card.rank) if card.rank != Rank.RED_JOKER and card.rank != Rank.BLACK_JOKER else 0
+            ))
+            hand.sorted = True
 
         # 只显示牌面值
-        cards = [card.get_rank_display() for card in sorted_cards]
+        cards = [card.get_rank_display() for card in hand.cards]
         cards_per_row = 10
 
         for i in range(0, len(cards), cards_per_row):
             row_cards = cards[i:i+cards_per_row]
             print(" ".join(row_cards))
         print()
-
-        # 更新手牌以保持排序状态
-        hand.cards = sorted_cards
 
     def player_play_card(self, player: PlayerComponent, hand: Hand, team: TeamComponent):
         while True:
