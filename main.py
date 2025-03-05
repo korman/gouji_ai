@@ -11,6 +11,7 @@ class Suit(Enum):
     DIAMOND = "♦"
     CLUB = "♣"
     SPADE = "♠"
+    JOKER = "🃏"  # 添加王牌花色
 
 
 class Rank(Enum):
@@ -27,6 +28,8 @@ class Rank(Enum):
     JACK = "J"
     QUEEN = "Q"
     KING = "K"
+    RED_JOKER = "大王"    # 大王
+    BLACK_JOKER = "小王"  # 小王
 
 
 class Team(Enum):
@@ -43,6 +46,8 @@ class Card:
         self.deck_id = deck_id
 
     def __str__(self):
+        if self.rank in [Rank.RED_JOKER, Rank.BLACK_JOKER]:
+            return self.rank.value
         return f"{self.suit.value}{self.rank.value}"
 
 
@@ -82,11 +87,17 @@ class DeckSystem(esper.Processor):
             self.initialized = True
 
     def create_deck(self):
-        # 创建4副牌 (不含大小王)
+        # 创建4副牌 (包含大小王)
         for deck_id in range(4):
-            for suit in Suit:
-                for rank in Rank:
+            # 常规牌
+            for suit in [Suit.HEART, Suit.DIAMOND, Suit.CLUB, Suit.SPADE]:
+                for rank in [r for r in Rank if r != Rank.RED_JOKER and r != Rank.BLACK_JOKER]:
                     self.deck.append(Card(suit, rank, deck_id))
+
+            # 添加大小王
+            self.deck.append(Card(Suit.JOKER, Rank.RED_JOKER, deck_id))
+            self.deck.append(Card(Suit.JOKER, Rank.BLACK_JOKER, deck_id))
+
         print(f"创建了 {len(self.deck)} 张牌")
 
     def shuffle_deck(self):
@@ -121,15 +132,20 @@ class DealSystem(esper.Processor):
             print(f"错误: 需要6个玩家，但找到了{len(players)}个")
             return
 
-        # 每个玩家36张牌
-        cards_per_player = len(self.deck_system.deck) // 6
-        print(f"每位玩家将获得 {cards_per_player} 张牌")
+        # 每个玩家获得相同数量的牌
+        cards_per_player = 34  # 根据您的截图，每人34张牌
 
         # 为每个玩家分配牌
         for i, (ent, player, hand) in enumerate(players):
-            hand.cards = self.deck_system.deck[i *
-                                               cards_per_player:(i + 1) * cards_per_player]
-            print(f"{player.name} 获得了 {len(hand.cards)} 张牌")
+            start_idx = i * cards_per_player
+            end_idx = start_idx + cards_per_player
+
+            # 确保不超出范围
+            if end_idx <= len(self.deck_system.deck):
+                hand.cards = self.deck_system.deck[start_idx:end_idx]
+                print(f"{player.name} 获得了 {len(hand.cards)} 张牌")
+            else:
+                print(f"警告: 牌不够分配给 {player.name}")
 
         # 清空牌组
         self.deck_system.deck = []
