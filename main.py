@@ -821,20 +821,41 @@ class GoujiGame:
         游戏流程:
         1. 首先进行一次处理器轮转，处理发牌阶段
         2. 然后进入主循环，反复处理玩家出牌
-        3. 每轮后等待用户按Enter继续，或输入q退出
+        3. 仅在轮到人类玩家时展示交互提示
         4. 捕获KeyboardInterrupt以便用户可以使用Ctrl+C退出游戏
         """
         print("够级游戏开始！")
 
-        # 游戏主循环
-        esper.process()  # 处理发牌
+        # 处理发牌
+        esper.process()
+
+        # 获取游戏状态组件
+        game_state = None
+        for _, state in esper.get_component(GameStateComponent):
+            game_state = state
+            break
+
+        if not game_state:
+            print("错误：找不到游戏状态组件")
+            return
 
         while True:
             try:
-                esper.process()  # 处理出牌
-                input_text = input("按Enter继续，输入q退出: ")
-                if input_text.lower() == 'q':
-                    break
+                # 处理出牌
+                esper.process()
+
+                # 只有当轮到人类玩家时才显示提示
+                if game_state.current_player_id == game_state.human_player_id:
+                    input_text = input("按Enter继续，输入q退出: ")
+                    if input_text.lower() == 'q':
+                        break
+                # AI回合自动继续，无需用户输入
+                else:
+                    # 可选：添加短暂延迟，让用户能看清AI的操作
+                    # import time
+                    # time.sleep(1)
+                    pass
+
             except KeyboardInterrupt:
                 break
 
