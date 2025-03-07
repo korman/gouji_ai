@@ -632,8 +632,12 @@ class PlaySystem(esper.Processor):
         """
         处理人类玩家的出牌操作。
 
-        允许玩家通过控制台输入选择要打出的牌，支持出单张牌或多张相同牌。
-        系统会验证玩家输入的合法性，确保玩家手中有相应的牌可以打出。
+        允许玩家通过控制台输入选择要打出的牌，支持以下格式：
+        - 单张牌: "A", "2", "大王"等
+        - 连续相同牌: "QQ", "333"等
+        - 空格分隔相同牌: "5 5", "8 8 8"等
+
+        当使用空格分隔格式时，会从手牌中随机选择指定数量的该牌面值的牌。
 
         参数:
             player (PlayerComponent): 玩家组件
@@ -643,7 +647,7 @@ class PlaySystem(esper.Processor):
         while True:
             try:
                 # 获取用户输入的牌面值
-                card_input = input("请输入要出的牌 (例如: Q 或 QQ 或 大王): ").strip()
+                card_input = input("请输入要出的牌 (例如: Q、QQ、5 5、8 8 8): ").strip()
                 if not card_input:
                     print("输入为空，请重新输入。")
                     continue
@@ -651,9 +655,31 @@ class PlaySystem(esper.Processor):
                 # 计算手牌中每种牌面值的数量
                 card_counts = self.count_cards_by_rank(hand.cards)
 
-                # 判断输入是多张相同牌还是单张牌
-                if len(set(card_input)) == 1 and len(card_input) > 1:
-                    # 多张相同牌，例如"QQ"
+                # 检查是否为空格分隔的相同牌 (如 "5 5" 或 "8 8 8")
+                if " " in card_input:
+                    parts = card_input.split()
+
+                    # 验证所有部分是否相同
+                    if len(set(parts)) == 1:
+                        rank_value = parts[0]
+                        count = len(parts)
+
+                        # 检查玩家是否有足够的牌
+                        if rank_value in card_counts and card_counts[rank_value] >= count:
+                            # 随机选择指定数量的牌
+                            candidates = [
+                                card for card in hand.cards if card.get_rank_display() == rank_value]
+                            played_cards = random.sample(candidates, count)
+                        else:
+                            print(f"您没有{count}张{rank_value}牌。")
+                            continue
+                    else:
+                        print("输入格式错误，请确保所有牌都相同。")
+                        continue
+
+                # 判断输入是连续相同牌还是单张牌
+                elif len(set(card_input)) == 1 and len(card_input) > 1:
+                    # 连续相同牌，例如"QQ"
                     rank_value = card_input[0]
                     count = len(card_input)
 
