@@ -67,6 +67,10 @@ class Card:
             # 对于数字牌，直接返回数值的字符串
             return str(self.rank.value)
 
+    def get_rank_display(self):
+        """返回牌面上的显示值"""
+        return self.rank.value  # 假设rank.value是显示值，如"A"、"10"、"大王"等
+
 
 class Hand:
     """

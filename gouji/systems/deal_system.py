@@ -98,25 +98,25 @@ class DealSystem(esper.Processor):
             hand (Hand): 手牌组件
         """
         # 对手牌进行排序，便于阅读
-        sorted_cards = sorted(hand.cards, key=lambda card: (
-            0 if card.rank == Rank.RED_JOKER else
-            1 if card.rank == Rank.BLACK_JOKER else 2,
-            list(Rank).index(
-                card.rank) if card.rank != Rank.RED_JOKER and card.rank != Rank.BLACK_JOKER else 0
-        ))
+        # sorted_cards = sorted(hand.cards, key=lambda card: (
+        #     0 if card.rank == Rank.RED_JOKER else
+        #     1 if card.rank == Rank.BLACK_JOKER else 2,
+        #     list(Rank).index(
+        #         card.rank) if card.rank != Rank.RED_JOKER and card.rank != Rank.BLACK_JOKER else 0
+        # ))
 
-        # 只显示牌面值
-        cards = [card.get_rank_display() for card in sorted_cards]
-        cards_per_row = 10
+        # # 只显示牌面值
+        # cards = [card.get_rank_display() for card in sorted_cards]
+        # cards_per_row = 10
 
-        for i in range(0, len(cards), cards_per_row):
-            row_cards = cards[i:i+cards_per_row]
-            print(" ".join(row_cards))
-        print()
+        # for i in range(0, len(cards), cards_per_row):
+        #     row_cards = cards[i:i+cards_per_row]
+        #     print(" ".join(row_cards))
+        # print()
 
-        # 更新手牌以保持排序状态
-        hand.cards = sorted_cards
-        hand.sorted = True
+        # # 更新手牌以保持排序状态
+        # hand.cards = sorted_cards
+        # hand.sorted = True
 
     def get_player_name_by_id(self, player_id):
         """
