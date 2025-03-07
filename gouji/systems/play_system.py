@@ -5,6 +5,7 @@ from collections import defaultdict
 from ..components.card_components import Card, Hand
 from ..components.player_components import PlayerComponent, TeamComponent
 from ..components.game_components import GameStateComponent
+from ..constants import Rank
 
 
 class PlaySystem(esper.Processor):
