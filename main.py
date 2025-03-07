@@ -118,16 +118,26 @@ class Card:
 
     def get_rank_display(self):
         """
-        只返回牌的点数，用于简化显示。
-
-        对于大小王返回其完整名称，对于常规牌只返回点数。
+        获取牌面的显示值
 
         返回:
-            str: 牌的点数值，例如"A"或"大王"
+            str: 便于显示的牌面值表示
         """
-        if self.rank in [Rank.RED_JOKER, Rank.BLACK_JOKER]:
-            return self.rank.value
-        return self.rank.value
+        if self.rank == Rank.RED_JOKER:
+            return "RJ"  # 改为"RJ"代替"大王"
+        elif self.rank == Rank.BLACK_JOKER:
+            return "BJ"  # 改为"BJ"代替"小王"
+        elif self.rank == Rank.ACE:
+            return "A"
+        elif self.rank == Rank.JACK:
+            return "J"
+        elif self.rank == Rank.QUEEN:
+            return "Q"
+        elif self.rank == Rank.KING:
+            return "K"
+        else:
+            # 对于数字牌，直接返回数值的字符串
+            return str(self.rank.value)
 
 
 class Hand:
@@ -659,7 +669,7 @@ class PlaySystem(esper.Processor):
         while True:
             try:
                 # 获取用户输入的牌面值
-                card_input = input("请输入要出的牌 (例如: Q、QQ、5 5、8 8 8): ").strip()
+                card_input = input("请输入要出的牌 (例如: Q、QQ、5 5、RJ): ").strip()
                 if not card_input:
                     print("输入为空，请重新输入。")
                     continue
@@ -710,14 +720,17 @@ class PlaySystem(esper.Processor):
                         print(f"您没有{count}张{rank_value}牌。")
                         continue
                 else:
-                    # 处理单张牌或特殊输入(大王/小王)
-                    if card_input == "大王" and "大王" in card_counts:
+                    # 处理单张牌或特殊输入(RJ/BJ)
+                    if card_input == "RJ" and "RJ" in card_counts:
                         played_cards = self.find_cards_by_rank(
-                            hand.cards, "大王", 1)
-                    elif card_input == "小王" and "小王" in card_counts:
+                            hand.cards, "RJ", 1)
+                    elif card_input == "BJ" and "BJ" in card_counts:
                         played_cards = self.find_cards_by_rank(
-                            hand.cards, "小王", 1)
+                            hand.cards, "BJ", 1)
                     elif len(card_input) == 1 and card_input in card_counts:
+                        played_cards = self.find_cards_by_rank(
+                            hand.cards, card_input, 1)
+                    elif card_input in card_counts:  # 处理两字符输入 (如"10")
                         played_cards = self.find_cards_by_rank(
                             hand.cards, card_input, 1)
                     else:
