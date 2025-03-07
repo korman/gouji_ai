@@ -186,7 +186,8 @@ class PlaySystem(esper.Processor):
         """
         显示玩家的手牌。
 
-        如果手牌尚未排序，会先对手牌进行排序，然后每行最多显示10张牌。
+        对手牌按照真实数值大小排序，然后每行最多显示10张牌。
+        牌面显示仍使用原始牌面符号。
 
         参数:
             player (PlayerComponent): 玩家组件
@@ -194,14 +195,10 @@ class PlaySystem(esper.Processor):
         """
         print(f"\n{player.name} 的手牌:")
 
-        # 对手牌进行排序，便于阅读（如果尚未排序）
+        # 对手牌进行排序，按照真实数值从大到小排列
         if not hand.sorted:
-            hand.cards = sorted(hand.cards, key=lambda card: (
-                0 if card.rank == Rank.RED_JOKER else
-                1 if card.rank == Rank.BLACK_JOKER else 2,
-                list(Rank).index(
-                    card.rank) if card.rank != Rank.RED_JOKER and card.rank != Rank.BLACK_JOKER else 0
-            ))
+            hand.cards = sorted(
+                hand.cards, key=lambda card: card.rank.get_value(), reverse=False)
             hand.sorted = True
 
         # 只显示牌面值

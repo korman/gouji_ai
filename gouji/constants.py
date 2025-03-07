@@ -50,6 +50,39 @@ class Rank(Enum):
     RED_JOKER = "大王"    # 大王
     BLACK_JOKER = "小王"  # 小王
 
+    def get_value(self):
+        """
+        获取牌的数值大小，用于比较牌面大小。
+        够级规则中的牌大小顺序: 3-10, J, Q, K, A, 2, 小王, 大王
+
+        返回:
+            int: 牌的数值大小
+        """
+        value_map = {
+            Rank.THREE: 3,
+            Rank.FOUR: 4,
+            Rank.FIVE: 5,
+            Rank.SIX: 6,
+            Rank.SEVEN: 7,
+            Rank.EIGHT: 8,
+            Rank.NINE: 9,
+            Rank.TEN: 10,
+            Rank.JACK: 11,
+            Rank.QUEEN: 12,
+            Rank.KING: 13,
+            Rank.ACE: 14,
+            Rank.TWO: 15,
+            Rank.BLACK_JOKER: 16,
+            Rank.RED_JOKER: 17
+        }
+        return value_map[self]
+
+    def __lt__(self, other):
+        """重载小于运算符，允许直接比较牌的大小"""
+        if not isinstance(other, Rank):
+            return NotImplemented
+        return self.get_value() < other.get_value()
+
 
 class Team(Enum):
     """队伍枚举类型"""
