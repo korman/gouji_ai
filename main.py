@@ -521,6 +521,11 @@ class PlaySystem(esper.Processor):
             # 让玩家出牌
             if hand.cards:
                 self.player_play_card(player, hand, team)
+                # 检查是否出完所有牌
+                if not hand.cards:
+                    print(f"\n🎉 恭喜! {player.name} ({team.team.name}队) 赢得了游戏!")
+                    game_state.phase = "game_over"  # 将游戏阶段设为结束
+                    return
             else:
                 print(f"\n{player.name} 没有牌了!")
 
@@ -556,6 +561,13 @@ class PlaySystem(esper.Processor):
                 card_index = random.randint(0, len(hand.cards) - 1)
                 played_card = hand.cards.pop(card_index)
                 print(f"\n{player.name} ({team.team.name}队) 打出了: {played_card}")
+
+                # 检查是否出完所有牌
+                if not hand.cards:
+                    print(
+                        f"\n🎮 游戏结束! {player.name} ({team.team.name}队) 赢得了游戏!")
+                    game_state.phase = "game_over"  # 将游戏阶段设为结束
+                    return
             else:
                 print(f"\n{player.name} 没有牌了!")
 
