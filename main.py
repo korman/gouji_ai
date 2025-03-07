@@ -222,9 +222,11 @@ class GameStateComponent:
         """
         初始化游戏状态组件，设置默认状态。
         """
-        self.current_player_id = 0  # 当前玩家的ID（不是实体ID）
-        self.phase = "dealing"  # "dealing" 或 "playing"
-        self.human_player_id = 0  # 记录人类玩家的ID
+        self.phase = "dealing"  # 游戏阶段：dealing(发牌), playing(出牌), game_over(结束)
+        self.current_player_id = 0  # 当前玩家ID
+        self.human_player_id = 0  # 人类玩家ID (默认为0)
+        self.players_without_cards = set()  # 新增：记录已经出完牌的玩家ID
+        self.rankings = []  # 新增：记录玩家完成顺序
 
 # 系统定义
 
@@ -500,6 +502,16 @@ class PlaySystem(esper.Processor):
         # 只有在出牌阶段才处理
         for _, game_state in esper.get_component(GameStateComponent):
             if game_state.phase == "playing":
+                # 检查是否只剩最后一名玩家（额外检查，以防其他地方遗漏）
+                if len(game_state.players_without_cards) == 5:
+                    last_player_id = next(id for id in range(
+                        6) if id not in game_state.players_without_cards)
+                    last_player_name = self.get_player_name_by_id(
+                        last_player_id)
+                    print(f"\n🎮 游戏结束! {last_player_name} 成为最后一名!")
+                    game_state.phase = "game_over"
+                    return
+
                 # 轮到人类玩家，显示手牌
                 if game_state.current_player_id == game_state.human_player_id:
                     self.handle_human_turn(game_state)
@@ -533,15 +545,28 @@ class PlaySystem(esper.Processor):
                 self.player_play_card(player, hand, team)
                 # 检查是否出完所有牌
                 if not hand.cards:
-                    print(f"\n🎉 恭喜! {player.name} ({team.team.name}队) 赢得了游戏!")
-                    game_state.phase = "game_over"  # 将游戏阶段设为结束
-                    return
+                    print(
+                        f"\n🎉 {player.name} ({team.team.name}队) 出完了所有牌，排名第{len(game_state.rankings) + 1}!")
+                    game_state.players_without_cards.add(
+                        game_state.human_player_id)
+                    game_state.rankings.append(game_state.human_player_id)
+
+                    # 检查是否只剩最后一名玩家
+                    if len(game_state.players_without_cards) == 5:
+                        # 找出最后一名
+                        last_player_id = next(id for id in range(
+                            6) if id not in game_state.players_without_cards)
+                        last_player_name = self.get_player_name_by_id(
+                            last_player_id)
+                        print(f"\n🎮 游戏结束! {last_player_name} 成为最后一名!")
+                        game_state.phase = "game_over"
+                        return
             else:
                 print(f"\n{player.name} 没有牌了!")
 
             # 更新下一个玩家
-            game_state.current_player_id = (
-                game_state.current_player_id + 1) % 6
+            game_state.current_player_id = self.find_next_player_with_cards(
+                game_state)
 
             # 提示等待下一个AI玩家
             next_player_name = self.get_player_name_by_id(
@@ -575,15 +600,27 @@ class PlaySystem(esper.Processor):
                 # 检查是否出完所有牌
                 if not hand.cards:
                     print(
-                        f"\n🎮 游戏结束! {player.name} ({team.team.name}队) 赢得了游戏!")
-                    game_state.phase = "game_over"  # 将游戏阶段设为结束
-                    return
+                        f"\n🏆 {player.name} ({team.team.name}队) 出完了所有牌，排名第{len(game_state.rankings) + 1}!")
+                    game_state.players_without_cards.add(
+                        game_state.current_player_id)
+                    game_state.rankings.append(game_state.current_player_id)
+
+                    # 检查是否只剩最后一名玩家
+                    if len(game_state.players_without_cards) == 5:
+                        # 找出最后一名
+                        last_player_id = next(id for id in range(
+                            6) if id not in game_state.players_without_cards)
+                        last_player_name = self.get_player_name_by_id(
+                            last_player_id)
+                        print(f"\n🎮 游戏结束! {last_player_name} 成为最后一名!")
+                        game_state.phase = "game_over"
+                        return
             else:
                 print(f"\n{player.name} 没有牌了!")
 
-            # 更新下一个玩家
-            game_state.current_player_id = (
-                game_state.current_player_id + 1) % 6
+            # 更新下一个玩家 - 使用新的查找函数
+            game_state.current_player_id = self.find_next_player_with_cards(
+                game_state)
 
             # 如果下一个玩家是人类，提示并显示手牌
             if game_state.current_player_id == game_state.human_player_id:
@@ -790,6 +827,35 @@ class PlaySystem(esper.Processor):
             if card.get_rank_display() == rank and len(result) < count:
                 result.append(card)
         return result
+
+    def find_next_player_with_cards(self, game_state):
+        """
+        查找下一个有牌的玩家ID。
+
+        从当前玩家开始，按顺序查找下一个还有牌的玩家。
+        如果所有玩家都没牌了，游戏应该已经结束。
+
+        参数:
+            game_state (GameStateComponent): 当前游戏状态
+
+        返回:
+            int: 下一个有牌的玩家ID
+        """
+        next_id = (game_state.current_player_id + 1) % 6
+
+        # 如果已经有5个玩家出完牌，游戏应该结束
+        if len(game_state.players_without_cards) >= 5:
+            # 找出最后一个有牌的玩家
+            for i in range(6):
+                if i not in game_state.players_without_cards:
+                    return i
+            return next_id  # 以防万一
+
+        # 循环查找直到找到一个有牌的玩家
+        while next_id in game_state.players_without_cards:
+            next_id = (next_id + 1) % 6
+
+        return next_id
 
 # 游戏初始化和运行
 
