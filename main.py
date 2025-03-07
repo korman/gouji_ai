@@ -118,16 +118,26 @@ class Card:
 
     def get_rank_display(self):
         """
-        只返回牌的点数，用于简化显示。
-
-        对于大小王返回其完整名称，对于常规牌只返回点数。
+        获取牌面的显示值
 
         返回:
-            str: 牌的点数值，例如"A"或"大王"
+            str: 便于显示的牌面值表示
         """
-        if self.rank in [Rank.RED_JOKER, Rank.BLACK_JOKER]:
-            return self.rank.value
-        return self.rank.value
+        if self.rank == Rank.RED_JOKER:
+            return "RJ"  # 改为"RJ"代替"大王"
+        elif self.rank == Rank.BLACK_JOKER:
+            return "BJ"  # 改为"BJ"代替"小王"
+        elif self.rank == Rank.ACE:
+            return "A"
+        elif self.rank == Rank.JACK:
+            return "J"
+        elif self.rank == Rank.QUEEN:
+            return "Q"
+        elif self.rank == Rank.KING:
+            return "K"
+        else:
+            # 对于数字牌，直接返回数值的字符串
+            return str(self.rank.value)
 
 
 class Hand:
@@ -212,9 +222,11 @@ class GameStateComponent:
         """
         初始化游戏状态组件，设置默认状态。
         """
-        self.current_player_id = 0  # 当前玩家的ID（不是实体ID）
-        self.phase = "dealing"  # "dealing" 或 "playing"
-        self.human_player_id = 0  # 记录人类玩家的ID
+        self.phase = "dealing"  # 游戏阶段：dealing(发牌), playing(出牌), game_over(结束)
+        self.current_player_id = 0  # 当前玩家ID
+        self.human_player_id = 0  # 人类玩家ID (默认为0)
+        self.players_without_cards = set()  # 新增：记录已经出完牌的玩家ID
+        self.rankings = []  # 新增：记录玩家完成顺序
 
 # 系统定义
 
@@ -490,6 +502,16 @@ class PlaySystem(esper.Processor):
         # 只有在出牌阶段才处理
         for _, game_state in esper.get_component(GameStateComponent):
             if game_state.phase == "playing":
+                # 检查是否只剩最后一名玩家（额外检查，以防其他地方遗漏）
+                if len(game_state.players_without_cards) == 5:
+                    last_player_id = next(id for id in range(
+                        6) if id not in game_state.players_without_cards)
+                    last_player_name = self.get_player_name_by_id(
+                        last_player_id)
+                    print(f"\n🎮 游戏结束! {last_player_name} 成为最后一名!")
+                    game_state.phase = "game_over"
+                    return
+
                 # 轮到人类玩家，显示手牌
                 if game_state.current_player_id == game_state.human_player_id:
                     self.handle_human_turn(game_state)
@@ -521,12 +543,30 @@ class PlaySystem(esper.Processor):
             # 让玩家出牌
             if hand.cards:
                 self.player_play_card(player, hand, team)
+                # 检查是否出完所有牌
+                if not hand.cards:
+                    print(
+                        f"\n🎉 {player.name} ({team.team.name}队) 出完了所有牌，排名第{len(game_state.rankings) + 1}!")
+                    game_state.players_without_cards.add(
+                        game_state.human_player_id)
+                    game_state.rankings.append(game_state.human_player_id)
+
+                    # 检查是否只剩最后一名玩家
+                    if len(game_state.players_without_cards) == 5:
+                        # 找出最后一名
+                        last_player_id = next(id for id in range(
+                            6) if id not in game_state.players_without_cards)
+                        last_player_name = self.get_player_name_by_id(
+                            last_player_id)
+                        print(f"\n🎮 游戏结束! {last_player_name} 成为最后一名!")
+                        game_state.phase = "game_over"
+                        return
             else:
                 print(f"\n{player.name} 没有牌了!")
 
             # 更新下一个玩家
-            game_state.current_player_id = (
-                game_state.current_player_id + 1) % 6
+            game_state.current_player_id = self.find_next_player_with_cards(
+                game_state)
 
             # 提示等待下一个AI玩家
             next_player_name = self.get_player_name_by_id(
@@ -556,12 +596,31 @@ class PlaySystem(esper.Processor):
                 card_index = random.randint(0, len(hand.cards) - 1)
                 played_card = hand.cards.pop(card_index)
                 print(f"\n{player.name} ({team.team.name}队) 打出了: {played_card}")
+
+                # 检查是否出完所有牌
+                if not hand.cards:
+                    print(
+                        f"\n🏆 {player.name} ({team.team.name}队) 出完了所有牌，排名第{len(game_state.rankings) + 1}!")
+                    game_state.players_without_cards.add(
+                        game_state.current_player_id)
+                    game_state.rankings.append(game_state.current_player_id)
+
+                    # 检查是否只剩最后一名玩家
+                    if len(game_state.players_without_cards) == 5:
+                        # 找出最后一名
+                        last_player_id = next(id for id in range(
+                            6) if id not in game_state.players_without_cards)
+                        last_player_name = self.get_player_name_by_id(
+                            last_player_id)
+                        print(f"\n🎮 游戏结束! {last_player_name} 成为最后一名!")
+                        game_state.phase = "game_over"
+                        return
             else:
                 print(f"\n{player.name} 没有牌了!")
 
-            # 更新下一个玩家
-            game_state.current_player_id = (
-                game_state.current_player_id + 1) % 6
+            # 更新下一个玩家 - 使用新的查找函数
+            game_state.current_player_id = self.find_next_player_with_cards(
+                game_state)
 
             # 如果下一个玩家是人类，提示并显示手牌
             if game_state.current_player_id == game_state.human_player_id:
@@ -632,8 +691,12 @@ class PlaySystem(esper.Processor):
         """
         处理人类玩家的出牌操作。
 
-        允许玩家通过控制台输入选择要打出的牌，支持出单张牌或多张相同牌。
-        系统会验证玩家输入的合法性，确保玩家手中有相应的牌可以打出。
+        允许玩家通过控制台输入选择要打出的牌，支持以下格式：
+        - 单张牌: "A", "2", "大王"等
+        - 连续相同牌: "QQ", "333"等
+        - 空格分隔相同牌: "5 5", "8 8 8"等
+
+        当使用空格分隔格式时，会从手牌中随机选择指定数量的该牌面值的牌。
 
         参数:
             player (PlayerComponent): 玩家组件
@@ -643,7 +706,7 @@ class PlaySystem(esper.Processor):
         while True:
             try:
                 # 获取用户输入的牌面值
-                card_input = input("请输入要出的牌 (例如: Q 或 QQ 或 大王): ").strip()
+                card_input = input("请输入要出的牌 (例如: Q、QQ、5 5、RJ): ").strip()
                 if not card_input:
                     print("输入为空，请重新输入。")
                     continue
@@ -651,9 +714,31 @@ class PlaySystem(esper.Processor):
                 # 计算手牌中每种牌面值的数量
                 card_counts = self.count_cards_by_rank(hand.cards)
 
-                # 判断输入是多张相同牌还是单张牌
-                if len(set(card_input)) == 1 and len(card_input) > 1:
-                    # 多张相同牌，例如"QQ"
+                # 检查是否为空格分隔的相同牌 (如 "5 5" 或 "8 8 8")
+                if " " in card_input:
+                    parts = card_input.split()
+
+                    # 验证所有部分是否相同
+                    if len(set(parts)) == 1:
+                        rank_value = parts[0]
+                        count = len(parts)
+
+                        # 检查玩家是否有足够的牌
+                        if rank_value in card_counts and card_counts[rank_value] >= count:
+                            # 随机选择指定数量的牌
+                            candidates = [
+                                card for card in hand.cards if card.get_rank_display() == rank_value]
+                            played_cards = random.sample(candidates, count)
+                        else:
+                            print(f"您没有{count}张{rank_value}牌。")
+                            continue
+                    else:
+                        print("输入格式错误，请确保所有牌都相同。")
+                        continue
+
+                # 判断输入是连续相同牌还是单张牌
+                elif len(set(card_input)) == 1 and len(card_input) > 1:
+                    # 连续相同牌，例如"QQ"
                     rank_value = card_input[0]
                     count = len(card_input)
 
@@ -672,14 +757,17 @@ class PlaySystem(esper.Processor):
                         print(f"您没有{count}张{rank_value}牌。")
                         continue
                 else:
-                    # 处理单张牌或特殊输入(大王/小王)
-                    if card_input == "大王" and "大王" in card_counts:
+                    # 处理单张牌或特殊输入(RJ/BJ)
+                    if card_input == "RJ" and "RJ" in card_counts:
                         played_cards = self.find_cards_by_rank(
-                            hand.cards, "大王", 1)
-                    elif card_input == "小王" and "小王" in card_counts:
+                            hand.cards, "RJ", 1)
+                    elif card_input == "BJ" and "BJ" in card_counts:
                         played_cards = self.find_cards_by_rank(
-                            hand.cards, "小王", 1)
+                            hand.cards, "BJ", 1)
                     elif len(card_input) == 1 and card_input in card_counts:
+                        played_cards = self.find_cards_by_rank(
+                            hand.cards, card_input, 1)
+                    elif card_input in card_counts:  # 处理两字符输入 (如"10")
                         played_cards = self.find_cards_by_rank(
                             hand.cards, card_input, 1)
                     else:
@@ -739,6 +827,35 @@ class PlaySystem(esper.Processor):
             if card.get_rank_display() == rank and len(result) < count:
                 result.append(card)
         return result
+
+    def find_next_player_with_cards(self, game_state):
+        """
+        查找下一个有牌的玩家ID。
+
+        从当前玩家开始，按顺序查找下一个还有牌的玩家。
+        如果所有玩家都没牌了，游戏应该已经结束。
+
+        参数:
+            game_state (GameStateComponent): 当前游戏状态
+
+        返回:
+            int: 下一个有牌的玩家ID
+        """
+        next_id = (game_state.current_player_id + 1) % 6
+
+        # 如果已经有5个玩家出完牌，游戏应该结束
+        if len(game_state.players_without_cards) >= 5:
+            # 找出最后一个有牌的玩家
+            for i in range(6):
+                if i not in game_state.players_without_cards:
+                    return i
+            return next_id  # 以防万一
+
+        # 循环查找直到找到一个有牌的玩家
+        while next_id in game_state.players_without_cards:
+            next_id = (next_id + 1) % 6
+
+        return next_id
 
 # 游戏初始化和运行
 
