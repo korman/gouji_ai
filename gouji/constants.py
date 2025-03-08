@@ -85,9 +85,41 @@ class Rank(Enum):
 
 
 class Team(Enum):
-    """队伍枚举类型"""
+    """
+    队伍枚举类型。
+
+    表示游戏中的两个对战队伍。
+
+    属性:
+        A: 第一个队伍
+        B: 第二个队伍
+    """
     A = auto()
     B = auto()
 
     def __str__(self):
+        """
+        返回队伍的字符串表示。
+
+        返回:
+            str: 队伍名称（'A' 或 'B'）
+        """
         return self.name
+
+    def __repr__(self):
+        """
+        返回队伍的详细字符串表示。
+
+        返回:
+            str: 队伍的详细描述
+        """
+        return f"Team.{self.name}"
+
+    def opposite(self):
+        """
+        获取对方队伍。
+
+        返回:
+            Team: 与当前队伍对立的队伍
+        """
+        return Team.B if self == Team.A else Team.A
