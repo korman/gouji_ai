@@ -1,5 +1,6 @@
 import esper
 import random
+import sys
 from typing import List, Dict
 from collections import defaultdict
 from ..components.card_components import Card, Hand
@@ -69,12 +70,18 @@ class PlaySystem(esper.Processor):
                 try:
                     # 获取用户输入的牌面值
                     card_input = input(
-                        "请输入要出的牌 (例如: Q、Q Q、5 5、RJ，或输入 'p' 表示PASS): ").strip()
+                        "请输入要出的牌 (例如: Q、Q Q、5 5、RJ，或输入 'p' 表示PASS),'exit' 退出游戏: ").strip()
 
                     # 处理空输入
                     if not card_input:
                         print("输入为空，请重新输入。")
                         continue
+
+                    # 判断输入是否是exit，如果是则用退出游戏
+                    if card_input.lower() == 'exit':
+                        print("游戏结束")
+                        sys.exit()
+                        return
 
                     # 处理PASS逻辑
                     if card_input.lower() == 'p':

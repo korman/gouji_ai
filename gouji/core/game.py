@@ -119,11 +119,6 @@ class GoujiGame:
                         # 获取该玩家的PlayerComponent 和 TeamComponent
                         player_component = None
 
-                        # for _, component in esper.get_component(PlayerComponent):
-                        #     if component.player_id == player_id:
-                        #         player_component = component
-                        #         break
-
                         # 根据排名计算分数
                         score_change = ScoringRules.get_score_by_rank(rank)
 
@@ -173,12 +168,6 @@ class GoujiGame:
                         print(f"平局！ A队得分: {teamA_score}, B队得分: {teamB_score}")
 
                     break
-
-                # 只有当轮到人类玩家时才显示提示
-                if game_state.current_player_id == game_state.human_player_id:
-                    input_text = input("按Enter继续，输入q退出: ")
-                    if input_text.lower() == 'q':
-                        break
 
             except KeyboardInterrupt:
                 print("\n游戏被用户中断")
