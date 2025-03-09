@@ -6,7 +6,7 @@ import pytest
 
 from gouji.constants import Suit, Rank
 from gouji.components import Card
-from gouji.core import CardPatternChecker
+from gouji.utils import CardPatternChecker
 
 
 def generate_random_hand(num_cards: int = 36) -> List[Card]:

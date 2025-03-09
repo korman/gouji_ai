@@ -1,7 +1,7 @@
 import pytest
 from gouji.constants import Suit, Rank
 from gouji.components import Card
-from gouji.core import CardPatternChecker
+from gouji.utils import CardPatternChecker
 
 # 辅助函数
 
