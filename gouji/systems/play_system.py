@@ -33,6 +33,7 @@ class PlaySystem(esper.Processor):
         检查游戏是否处于出牌阶段("playing")，然后根据当前玩家是
         人类还是AI，调用相应的处理方法。
         """
+
         # 只有在出牌阶段才处理
         for _, game_state in esper.get_component(GameStateComponent):
             if game_state.phase == "playing":

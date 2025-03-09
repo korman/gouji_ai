@@ -16,18 +16,14 @@ class GoujiGame:
     使用esper作为ECS框架来管理实体、组件和系统。
     """
 
-    def __init__(self):
+    def __init__(self, human_players=0):
         """
         初始化游戏环境和组件。
 
-        进行以下设置:
-        1. 清空esper数据库，确保游戏状态干净
-        2. 创建游戏状态实体和组件
-        3. 创建游戏中的玩家实体
-        4. 初始化游戏所需的各个系统处理器
-        5. 将处理器添加到esper世界中
+        Args:
+            human_players (int, optional): 人类玩家数量. 默认为0 (全AI).
+                                           最大值为6，超出范围会被调整.
         """
-
         # 重置esper世界状态（防止重复运行时的问题）
         esper.clear_database()
 
@@ -35,8 +31,8 @@ class GoujiGame:
         game_state_entity = esper.create_entity()
         esper.add_component(game_state_entity, GameStateComponent())
 
-        # 创建玩家
-        self.create_players()
+        # 根据传入的人类玩家数量创建玩家
+        self.create_players(human_players)
 
         # 初始化游戏系统
         self.deck_system = DeckSystem()
@@ -48,26 +44,28 @@ class GoujiGame:
         esper.add_processor(self.deal_system)
         esper.add_processor(self.play_system)
 
-    def create_players(self):
+    def create_players(self, human_players=0):
         """
-        创建游戏中的6个玩家实体。
+        创建游戏中的玩家实体。
 
-        为每个玩家:
-        1. 创建玩家实体
-        2. 添加PlayerComponent组件(包含名称、ID和是否为AI)
-        3. 添加Hand组件(用于存储手牌)
-        4. 添加TeamComponent组件(分配队伍)
-
-        玩家0设置为人类玩家，其余设置为AI玩家。
-        玩家按偶数(0,2,4)分入A队，奇数(1,3,5)分入B队。
+        Args:
+            human_players (int, optional): 人类玩家数量. 默认为0.
+                                           如果超过6，则调整为6.
         """
-        # 创建6个玩家，交替分配队伍
+        # 限制人类玩家数量在0-6之间
+        human_players = max(0, min(human_players, 6))
+
+        # 创建6个玩家，交替分配队伍和玩家类型
         for i in range(6):
             player_entity = esper.create_entity()
 
-            # 配置是否为AI (假设0号玩家是人类)
-            is_ai = (i != 0)
-            name = f"玩家" if i == 0 else f"Player{i}"
+            # 配置是否为AI
+            is_ai = (i >= human_players)
+
+            # 输出是否为AI
+            print(f"玩家{i+1} 是{'AI' if is_ai else '人类'}")
+
+            name = f"玩家{i+1}" if i < human_players else f"Player{i+1}"
 
             esper.add_component(player_entity, PlayerComponent(name, i, is_ai))
             esper.add_component(player_entity, Hand())
