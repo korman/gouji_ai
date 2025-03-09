@@ -8,6 +8,7 @@ class PlayerComponent:
         self.name = name
         self.player_id = player_id
         self.is_ai = is_ai
+        self.score = 0
 
 
 class TeamComponent:

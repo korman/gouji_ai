@@ -1,7 +1,7 @@
 import esper
 from ..components import PlayerComponent, Hand, TeamComponent, GameStateComponent
 from ..systems import DeckSystem, DealSystem, PlaySystem
-from ..constants import Team
+from ..constants import Team, ScoringRules
 
 
 class GoujiGame:
@@ -27,6 +27,7 @@ class GoujiGame:
         4. 初始化游戏所需的各个系统处理器
         5. 将处理器添加到esper世界中
         """
+
         # 重置esper世界状态（防止重复运行时的问题）
         esper.clear_database()
 
@@ -107,19 +108,70 @@ class GoujiGame:
 
                 # 检查游戏是否结束
                 if game_state.phase == "game_over":
+                    teamA_score = 0
+                    teamB_score = 0
+
                     print("游戏结束！排名情况:")
                     for rank, player_id in enumerate(game_state.rankings):
                         player_name = self.play_system.get_player_name_by_id(
                             player_id)
-                        print(f"第{rank+1}名: {player_name}")
+
+                        # 获取该玩家的PlayerComponent 和 TeamComponent
+                        player_component = None
+
+                        # for _, component in esper.get_component(PlayerComponent):
+                        #     if component.player_id == player_id:
+                        #         player_component = component
+                        #         break
+
+                        # 根据排名计算分数
+                        score_change = ScoringRules.get_score_by_rank(rank)
+
+                        for _, (component, team_component) in esper.get_components(PlayerComponent, TeamComponent):
+                            if component.player_id == player_id:
+                                player_component = component
+                                if team_component.team == Team.A:
+                                    teamA_score += score_change
+                                    print(f"teamA_score: {teamA_score}")
+                                else:
+                                    teamB_score += score_change
+                                    print(f"teamB_score: {teamB_score}")
+                                break
+
+                        # 更新玩家分数
+                        if player_component:
+                            player_component.score += score_change
+                            print(
+                                f"第{rank+1}名: {player_name} (分数变化: {'+' if score_change >= 0 else ''}{score_change})")
 
                     # 找出最后一名
                     if len(game_state.rankings) == 5:
                         last_player_id = next(id for id in range(
                             6) if id not in game_state.rankings)
+
+                        # 获得最后一名玩家的PlayerComponent与TeamComponent
+                        for _, (component, team_component) in esper.get_components(PlayerComponent, TeamComponent):
+                            if component.player_id == last_player_id:
+                                if team_component.team == Team.A:
+                                    teamA_score -= 2
+                                else:
+                                    teamB_score -= 2
+                                break
+
                         last_player_name = self.play_system.get_player_name_by_id(
                             last_player_id)
                         print(f"最后一名: {last_player_name}")
+
+                    # 根据teamA_score和teamB_score判断胜负
+                    if teamA_score > teamB_score:
+                        print(
+                            f"队伍A获胜！ A队得分: {teamA_score}, B队得分: {teamB_score}")
+                    elif teamA_score < teamB_score:
+                        print(
+                            f"队伍B获胜！ A队得分: {teamA_score}, B队得分: {teamB_score}")
+                    else:
+                        print(f"平局！ A队得分: {teamA_score}, B队得分: {teamB_score}")
+
                     break
 
                 # 只有当轮到人类玩家时才显示提示

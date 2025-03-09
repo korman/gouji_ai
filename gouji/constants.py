@@ -123,3 +123,32 @@ class Team(Enum):
             Team: 与当前队伍对立的队伍
         """
         return Team.B if self == Team.A else Team.A
+
+
+class ScoringRules:
+    """
+    游戏排名积分规则
+
+    定义了根据玩家最终排名的积分规则
+    """
+    RANKING_SCORES = {
+        0: 2,   # 第1名 +2分
+        1: 1,   # 第2名 +1分
+        2: 0,   # 第3名 0分
+        3: 0,   # 第4名 0分
+        4: -1,  # 第5名 -1分
+        5: -2   # 第6名 -2分
+    }
+
+    @classmethod
+    def get_score_by_rank(cls, rank):
+        """
+        根据排名获取对应的分数
+
+        参数:
+            rank (int): 玩家排名（0-based索引）
+
+        返回:
+            int: 对应的积分变化
+        """
+        return cls.RANKING_SCORES.get(rank, 0)
