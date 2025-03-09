@@ -69,8 +69,16 @@ class PlaySystem(esper.Processor):
             while True:
                 try:
                     # 获取用户输入的牌面值
-                    card_input = input(
-                        "请输入要出的牌 (例如: Q、Q Q、5 5、RJ，或输入 'p' 表示PASS),'exit' 退出游戏: ").strip()
+
+                    card_input = None
+
+                    # 当前玩家是最后一个有效出牌的玩家时，card_input的内容中没有pass
+                    if game_state.current_player_id == self.last_effective_player_id:
+                        card_input = input(
+                            "请输入要出的牌 (例如: Q、Q Q、5 5、RJ，或输入 'exit' 退出游戏: ").strip()
+                    else:
+                        card_input = input(
+                            "请输入要出的牌 (例如: Q、Q Q、5 5、RJ，或输入 'p' 表示PASS),'exit' 退出游戏: ").strip()
 
                     # 处理空输入
                     if not card_input:
@@ -85,6 +93,11 @@ class PlaySystem(esper.Processor):
 
                     # 处理PASS逻辑
                     if card_input.lower() == 'p':
+                        # 如果当前玩家是最后一个有效出牌的玩家，不允许pass
+                        if game_state.current_player_id == self.last_effective_player_id:
+                            print("您不能选择PASS，因为您是最后一个有效出牌的玩家。")
+                            continue
+
                         # 记录连续pass次数
                         self.consecutive_passes += 1
 
@@ -170,6 +183,13 @@ class PlaySystem(esper.Processor):
 
                     # 更新最后出的牌
                     self.last_played_cards = current_played_cards
+
+                    if current_played_cards:  # 确保成功出牌
+                        # 重置连续pass次数
+                        self.consecutive_passes = 0
+
+                        # 更新最后有效出牌的玩家ID
+                        self.last_effective_player_id = game_state.human_player_id
 
                     # 显示打出的牌
                     ranks = [card.get_rank_display()
