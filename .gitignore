@@ -47,3 +47,4 @@ models/*.ckpt
 results/plots/*.png
 # 或者保留README等文档用的图片：
 !docs/images/*.png
+*.out
