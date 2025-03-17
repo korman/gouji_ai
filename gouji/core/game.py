@@ -2,6 +2,7 @@ import esper
 from ..components import PlayerComponent, Hand, TeamComponent, GameStateComponent
 from ..systems import DeckSystem, DealSystem, PlaySystem
 from ..constants import Team, ScoringRules
+from ..interface import TurnHandlerInterface
 
 
 class GoujiGame:
@@ -12,17 +13,15 @@ class GoujiGame:
     1. 初始化游戏状态和玩家
     2. 创建并注册游戏系统处理器
     3. 提供游戏主循环逻辑
+    4. 允许注册玩家回合处理器，决定玩家类型
 
     使用esper作为ECS框架来管理实体、组件和系统。
     """
 
-    def __init__(self, human_players=0):
+    def __init__(self):
         """
         初始化游戏环境和组件。
-
-        Args:
-            human_players (int, optional): 人类玩家数量. 默认为0 (全AI).
-                                           最大值为6，超出范围会被调整.
+        玩家类型(AI或人类)将根据注册的回合处理器类型决定。
         """
         # 重置esper世界状态（防止重复运行时的问题）
         esper.clear_database()
@@ -31,41 +30,98 @@ class GoujiGame:
         game_state_entity = esper.create_entity()
         esper.add_component(game_state_entity, GameStateComponent())
 
-        # 根据传入的人类玩家数量创建玩家
-        self.create_players(human_players)
+        # 初始化回合处理器字典
+        self.turn_handlers = {}
+
+        # 创建游戏玩家（初始默认全部为AI）
+        self.create_players()
 
         # 初始化游戏系统
         self.deck_system = DeckSystem()
         self.deal_system = DealSystem(self.deck_system)
-        self.play_system = PlaySystem()
+        self.play_system = PlaySystem(self.turn_handlers)
+
+        # 将回合处理器关联到出牌系统
+        self.play_system.set_turn_handlers(self.turn_handlers)
 
         # 添加处理器
         esper.add_processor(self.deck_system)
         esper.add_processor(self.deal_system)
         esper.add_processor(self.play_system)
 
-    def create_players(self, human_players=0):
+    def register_turn_handler(self, player_id, handler, is_human=None):
         """
-        创建游戏中的玩家实体。
+        为指定玩家注册回合处理器并设置玩家类型
 
         Args:
-            human_players (int, optional): 人类玩家数量. 默认为0.
-                                           如果超过6，则调整为6.
-        """
-        # 限制人类玩家数量在0-6之间
-        human_players = max(0, min(human_players, 6))
+            player_id (int): 玩家ID
+            handler (TurnHandlerInterface): 回合处理器实例
+            is_human (bool, optional): 是否为人类玩家。如果为None，则根据处理器类名自动判断
 
-        # 创建6个玩家，交替分配队伍和玩家类型
+        Returns:
+            bool: 注册是否成功
+        """
+        if not isinstance(handler, TurnHandlerInterface):
+            print(f"错误: 处理器必须实现TurnHandlerInterface接口")
+            return False
+
+        # 检查玩家ID是否有效，同时查找PlayerComponent
+        player_found = False
+        player_component = None
+
+        for entity, component in esper.get_component(PlayerComponent):
+            if component.player_id == player_id:
+                player_found = True
+                player_component = component
+                break
+
+        if not player_found or not player_component:
+            print(f"错误: 玩家ID {player_id} 不存在")
+            return False
+
+        # 判断玩家类型（如果未显式指定，则根据处理器类名判断）
+        if is_human is None:
+            handler_class_name = handler.__class__.__name__.lower()
+            is_human = 'human' in handler_class_name or 'player' in handler_class_name
+
+        # 更新玩家类型
+        player_component.is_ai = not is_human
+
+        # 注册处理器
+        self.turn_handlers[player_id] = handler
+        print(f"成功为玩家 {player_id} 注册了回合处理器: {handler.__class__.__name__}")
+        print(f"玩家 {player_id} 现在是{'人类' if not player_component.is_ai else 'AI'}玩家")
+        return True
+
+    def register_handlers_for_players(self, player_ids, handler_class, **handler_kwargs):
+        """
+        为多个玩家注册同一类型的处理器
+
+        Args:
+            player_ids (list): 玩家ID列表
+            handler_class: 处理器类
+            **handler_kwargs: 传递给处理器构造函数的关键字参数
+        """
+        for player_id in player_ids:
+            # 创建处理器实例
+            handler = handler_class(**handler_kwargs)
+            self.register_turn_handler(player_id, handler)
+
+        print(f"已为 {len(player_ids)} 名玩家注册处理器: {handler_class.__name__}")
+
+    def create_players(self):
+        """
+        创建游戏中的玩家实体。
+        所有玩家初始设置为AI玩家，具体类型将根据注册的处理器决定
+        """
+        # 创建6个玩家，交替分配队伍
         for i in range(6):
             player_entity = esper.create_entity()
 
-            # 配置是否为AI
-            is_ai = (i >= human_players)
+            # 初始默认为AI玩家
+            is_ai = True
 
-            # 输出是否为AI
-            print(f"玩家{i+1} 是{'AI' if is_ai else '人类'}")
-
-            name = f"玩家{i+1}" if i < human_players else f"Player{i+1}"
+            name = f"Player{i+1}"
 
             esper.add_component(player_entity, PlayerComponent(name, i, is_ai))
             esper.add_component(player_entity, Hand())
@@ -84,6 +140,26 @@ class GoujiGame:
         3. 仅在轮到人类玩家时展示交互提示
         4. 捕获KeyboardInterrupt以便用户可以使用Ctrl+C退出游戏
         """
+        # 检查每个玩家是否都有回合处理器
+        missing_handlers = []
+        for _, component in esper.get_component(PlayerComponent):
+            if component.player_id not in self.turn_handlers:
+                missing_handlers.append(component.player_id)
+
+        if missing_handlers:
+            print(f"警告: 以下玩家没有注册回合处理器: {missing_handlers}")
+            response = input("是否继续游戏? (y/n): ")
+            if response.lower() != 'y':
+                print("游戏已取消")
+                return
+
+        # 输出玩家信息
+        print("\n玩家信息:")
+        for _, component in esper.get_component(PlayerComponent):
+            print(
+                f"玩家{component.player_id+1} ({component.name}): {'AI' if component.is_ai else '人类'}")
+        print()
+
         print("够级游戏开始！")
 
         # 处理发牌

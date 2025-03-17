@@ -21,7 +21,7 @@ class PlaySystem(esper.Processor):
     并相应地执行人类交互或AI决策。
     """
 
-    def __init__(self, turn_handlers: Dict[int, TurnHandlerInterface]):
+    def __init__(self):
         # 新增属性，用于跟踪桌面上最后出的牌
         self.last_played_cards = None
         self.consecutive_passes = 0  # 跟踪连续pass的次数
@@ -29,25 +29,16 @@ class PlaySystem(esper.Processor):
         self._validate_handlers()
 
         self.last_effective_player_id = None  # 最后一个有效出牌的玩家ID
-        self.turn_handlers = turn_handlers  # 玩家回合处理器
 
-    def _validate_handlers(self):
-        """验证是否所有玩家都有对应的处理器"""
-        # 固定为6个玩家
-        PLAYER_COUNT = 6
+    def add_handlder(self, player_id, handler):
+        """
+        为指定玩家ID添加回合处理器。
 
-        # 检查每个玩家ID是否有处理器
-        missing_handlers = []
-        for player_id in range(PLAYER_COUNT):
-            if player_id not in self.turn_handlers and self.default_handler is None:
-                missing_handlers.append(player_id)
-
-        # 如果有玩家没有处理器且没有默认处理器，抛出异常
-        if missing_handlers:
-            raise ValueError(
-                f"缺少玩家ID {missing_handlers} 的回合处理器，且未提供默认处理器。"
-                f"请为所有6个玩家提供处理器，或者设置一个默认处理器。"
-            )
+        参数:
+            player_id (int): 玩家ID
+            handler (TurnHandlerInterface): 回合处理器实例
+        """
+        self.turn_handlers[player_id] = handler
 
     def process(self):
         """
@@ -56,6 +47,8 @@ class PlaySystem(esper.Processor):
         检查游戏是否处于出牌阶段("playing")，然后根据当前玩家是
         人类还是AI，调用相应的处理方法。
         """
+
+        self._validate_handlers()
 
         # 只有在出牌阶段才处理
         for _, game_state in esper.get_component(GameStateComponent):
@@ -652,3 +645,21 @@ class PlaySystem(esper.Processor):
             next_id = (next_id + 1) % 6
 
         return next_id
+
+    def _validate_handlers(self):
+        """验证是否所有玩家都有对应的处理器"""
+        # 固定为6个玩家
+        PLAYER_COUNT = 6
+
+        # 检查每个玩家ID是否有处理器
+        missing_handlers = []
+        for player_id in range(PLAYER_COUNT):
+            if player_id not in self.turn_handlers and self.default_handler is None:
+                missing_handlers.append(player_id)
+
+        # 如果有玩家没有处理器且没有默认处理器，抛出异常
+        if missing_handlers:
+            raise ValueError(
+                f"缺少玩家ID {missing_handlers} 的回合处理器，且未提供默认处理器。"
+                f"请为所有6个玩家提供处理器，或者设置一个默认处理器。"
+            )
