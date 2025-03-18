@@ -1,4 +1,10 @@
+import esper
+import random
 from ..interface import TurnHandlerInterface
+from ..components import PlayerComponent, Hand, TeamComponent, Card
+from ..utils import CardPatternChecker
+from ..interface import PlayerAction
+from typing import List, Tuple
 
 
 class DefaultAITurnHandler(TurnHandlerInterface):
@@ -6,7 +12,9 @@ class DefaultAITurnHandler(TurnHandlerInterface):
     默认AI回合处理器，实现基础的AI出牌逻辑
     """
 
-    def handle_player_turn(self, game_state, player_id, play_system):
+    def handle_player_turn(
+        self, game_state, player_id, play_system
+    ) -> Tuple[PlayerAction, List[Card]]:
         """
         处理AI玩家的回合
 
@@ -21,30 +29,66 @@ class DefaultAITurnHandler(TurnHandlerInterface):
             play_system: 出牌系统的引用
         """
         # 获取当前玩家的手牌
-        player_hand = game_state.get_player_hand(player_id)
 
-        if not player_hand:
-            # 手牌为空，无法出牌
-            print(f"AI玩家 {player_id} 没有手牌可出")
+        ai_entity = play_system.get_player_entity_by_id(player_id)
+
+        if ai_entity is None:
+            print(f"AI玩家 {player_id} 不存在")
             return
 
-        # 获取当前可打出的合法牌
-        playable_cards = self._get_playable_cards(
-            game_state, player_id, player_hand, play_system)
+        player = esper.component_for_entity(ai_entity, PlayerComponent)
+        hand = esper.component_for_entity(ai_entity, Hand)
+        team = esper.component_for_entity(ai_entity, TeamComponent)
+        last_played_cards = play_system.get_last_played_cards()
 
-        if not playable_cards:
-            # 没有可出的牌，可能需要跳过回合
-            print(f"AI玩家 {player_id} 没有可出的牌，跳过回合")
-            play_system.pass_turn(player_id)
-            return
+        if hand:
+            # 找出能压过上一手牌的组合
+            beating_combinations = CardPatternChecker.find_all_beating_combinations(
+                hand.cards, last_played_cards
+            )
 
-        # 选择最佳出牌
-        best_card = self._select_best_card(
-            game_state, player_id, playable_cards, play_system)
+            if not beating_combinations:
+                # 没有能压过的组合，选择 PASS
+                # 循环输出last_played_cards
+                print("上一手牌:")
+                for card in last_played_cards:
+                    print(f"{card}")
 
-        # 打出选择的牌
-        print(f"AI玩家 {player_id} 打出: {best_card}")
-        play_system.play_card(player_id, best_card)
+                return PlayerAction.PASS, []
+
+            current_played_cards = random.choice(beating_combinations)
+
+            # 打出选择的牌
+            return PlayerAction.PLAY, current_played_cards
+
+        ###############################
+
+        # player_hand = game_state.get_player_hand(player_id)
+
+        # if not player_hand:
+        #     # 手牌为空，无法出牌
+        #     print(f"AI玩家 {player_id} 没有手牌可出")
+        #     return
+
+        # # 获取当前可打出的合法牌
+        # playable_cards = self._get_playable_cards(
+        #     game_state, player_id, player_hand, play_system
+        # )
+
+        # if not playable_cards:
+        #     # 没有可出的牌，可能需要跳过回合
+        #     print(f"AI玩家 {player_id} 没有可出的牌，跳过回合")
+        #     play_system.pass_turn(player_id)
+        #     return
+
+        # # 选择最佳出牌
+        # best_card = self._select_best_card(
+        #     game_state, player_id, playable_cards, play_system
+        # )
+
+        # # 打出选择的牌
+        # print(f"AI玩家 {player_id} 打出: {best_card}")
+        # play_system.play_card(player_id, best_card)
 
     def _get_playable_cards(self, game_state, player_id, player_hand, play_system):
         """
@@ -88,8 +132,7 @@ class DefaultAITurnHandler(TurnHandlerInterface):
         card_values = {}
         for card in playable_cards:
             # 计算卡牌价值（这里需要根据具体游戏规则定制）
-            value = self._evaluate_card_value(
-                card, game_state, player_id, play_system)
+            value = self._evaluate_card_value(card, game_state, player_id, play_system)
             card_values[card] = value
 
         # 返回价值最高的牌

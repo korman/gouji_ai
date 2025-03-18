@@ -9,6 +9,8 @@ from ..components.game_components import GameStateComponent
 from ..constants import Rank
 from ..utils import CardPatternChecker
 from ..interface import TurnHandlerInterface
+from ..interface import PlayerAction
+from ..constants import PLAYER_COUNT
 
 
 class PlaySystem(esper.Processor):
@@ -21,12 +23,12 @@ class PlaySystem(esper.Processor):
     并相应地执行人类交互或AI决策。
     """
 
+    turn_handlers = {}  # 回合处理器字典
+
     def __init__(self):
         # 新增属性，用于跟踪桌面上最后出的牌
         self.last_played_cards = None
         self.consecutive_passes = 0  # 跟踪连续pass的次数
-
-        self._validate_handlers()
 
         self.last_effective_player_id = None  # 最后一个有效出牌的玩家ID
 
@@ -39,6 +41,15 @@ class PlaySystem(esper.Processor):
             handler (TurnHandlerInterface): 回合处理器实例
         """
         self.turn_handlers[player_id] = handler
+
+    def get_last_played_cards(self):
+        """
+        获取最后出的牌。
+
+        返回:
+            List[Card]: 最后出的牌列表
+        """
+        return self.last_played_cards
 
     def process(self):
         """
@@ -60,8 +71,7 @@ class PlaySystem(esper.Processor):
                         for id in range(6)
                         if id not in game_state.players_without_cards
                     )
-                    last_player_name = self.get_player_name_by_id(
-                        last_player_id)
+                    last_player_name = self.get_player_name_by_id(last_player_id)
                     print(f"\n🎮 游戏结束! {last_player_name} 成为最后一名!")
                     game_state.phase = "game_over"
                     return
@@ -82,7 +92,74 @@ class PlaySystem(esper.Processor):
                     continue
 
                 # 使用找到的处理器处理当前玩家的回合
-                handler.handle_player_turn(game_state, current_player_id, self)
+                action, cards = handler.handle_player_turn(
+                    game_state, current_player_id, self
+                )
+
+                current_player_name = self.get_player_name_by_id(current_player_id)
+
+                # 处理玩家的出牌动作
+                if action == PlayerAction.PLAY:
+                    if not cards:
+                        print(f"错误: 玩家 {current_player_id} 选择出牌，但没有选择牌")
+                        continue
+
+                    if self.last_played_cards is None:
+                        if not CardPatternChecker.is_valid_pattern(cards):
+                            print("错误: 无效的牌型，请选择其他牌")
+                            continue
+
+                    if not CardPatternChecker.can_beat(cards, self.last_played_cards):
+                        print("错误: 无法打出这些牌，请选择其他牌")
+                        continue
+
+                    current_entity = self.get_player_entity_by_id(current_player_id)
+
+                    hand = esper.component_for_entity(current_entity, Hand)
+
+                    # 从手牌中移除打出的牌
+                    for card in cards:
+                        hand.cards.remove(card)
+
+                    # 显示打出的牌
+                    ranks = [card.get_rank_display() for card in cards]
+                    print(f"{current_player_name} 打出了: {' '.join(ranks)}")
+
+                    # 输出剩余手牌数量
+                    print(f"{current_player_name} 剩余手牌数量: {len(hand.cards)}")
+
+                    # 检查是否出完所有牌
+                    if not hand.cards:
+                        print(
+                            f"\n🎉 {current_player_name} 出完了所有牌，排名第{len(game_state.rankings) + 1}!"
+                        )
+                        game_state.players_without_cards.add(current_player_id)
+                        game_state.rankings.append(current_player_id)
+
+                    # 更新最后出的牌
+                    self.last_played_cards = cards
+                    self.last_effective_player_id = current_player_id
+                elif action == PlayerAction.PASS:
+                    print(f"{current_player_name} 选择PASS")
+                    # 输出剩余手牌数量
+                    current_entity = self.get_player_entity_by_id(current_player_id)
+                    hand = esper.component_for_entity(current_entity, Hand)
+                    print(f"{current_player_name} 剩余手牌数量: {len(hand.cards)}")
+
+                # 更新下一个玩家
+                game_state.current_player_id = self.find_next_player_with_cards(
+                    game_state
+                )
+
+                # 如果下一个玩家是最后一个有效出牌的玩家，重置牌型
+                if game_state.current_player_id == self.last_effective_player_id:
+                    self.last_played_cards = None
+
+                # 提示等待下一个玩家
+                next_player_name = self.get_player_name_by_id(
+                    game_state.current_player_id
+                )
+                print(f"\n等待 {next_player_name} 出牌...")
 
     def handle_human_turn(self, game_state):
         # 获取人类玩家的实体
@@ -138,8 +215,7 @@ class PlaySystem(esper.Processor):
                         self.consecutive_passes += 1
 
                         # 计算当前可出牌的玩家数量
-                        active_players = 6 - \
-                            len(game_state.players_without_cards)
+                        active_players = 6 - len(game_state.players_without_cards)
 
                         # 如果连续pass达到其他可出牌玩家数量，重置牌型
                         if self.consecutive_passes >= (active_players - 1):
@@ -173,8 +249,7 @@ class PlaySystem(esper.Processor):
                                     for card in hand.cards
                                     if card.get_rank_display() == rank_value
                                 ]
-                                current_played_cards = random.sample(
-                                    candidates, count)
+                                current_played_cards = random.sample(candidates, count)
                             else:
                                 print(f"您没有{count}张{rank_value}牌。")
                                 continue
@@ -256,8 +331,7 @@ class PlaySystem(esper.Processor):
                         self.last_effective_player_id = game_state.human_player_id
 
                     # 显示打出的牌
-                    ranks = [card.get_rank_display()
-                             for card in current_played_cards]
+                    ranks = [card.get_rank_display() for card in current_played_cards]
                     print(
                         f"{player.name} ({team.team.name}队) 打出了: {' '.join(ranks)}"
                     )
@@ -270,8 +344,7 @@ class PlaySystem(esper.Processor):
                         print(
                             f"\n🎉 {player.name} ({team.team.name}队) 出完了所有牌，排名第{len(game_state.rankings) + 1}!"
                         )
-                        game_state.players_without_cards.add(
-                            game_state.human_player_id)
+                        game_state.players_without_cards.add(game_state.human_player_id)
                         game_state.rankings.append(game_state.human_player_id)
 
                         # 检查是否只剩最后一名玩家
@@ -367,8 +440,7 @@ class PlaySystem(esper.Processor):
                     print(
                         f"\n🏆 {player.name} ({team.team.name}队) 出完了所有牌，排名第{len(game_state.rankings) + 1}!"
                     )
-                    game_state.players_without_cards.add(
-                        game_state.current_player_id)
+                    game_state.players_without_cards.add(game_state.current_player_id)
                     game_state.rankings.append(game_state.current_player_id)
 
                     # 检查是否只剩最后一名玩家
@@ -378,15 +450,13 @@ class PlaySystem(esper.Processor):
                             for id in range(6)
                             if id not in game_state.players_without_cards
                         )
-                        last_player_name = self.get_player_name_by_id(
-                            last_player_id)
+                        last_player_name = self.get_player_name_by_id(last_player_id)
                         print(f"\n🎮 游戏结束! {last_player_name} 成为最后一名!")
                         game_state.phase = "game_over"
                         return
 
             # 更新下一个玩家
-            game_state.current_player_id = self.find_next_player_with_cards(
-                game_state)
+            game_state.current_player_id = self.find_next_player_with_cards(game_state)
 
             # 如果下一个玩家是人类，提示并显示手牌
             if game_state.current_player_id == game_state.human_player_id:
@@ -447,7 +517,7 @@ class PlaySystem(esper.Processor):
         cards_per_row = 10
 
         for i in range(0, len(cards), cards_per_row):
-            row_cards = cards[i: i + cards_per_row]
+            row_cards = cards[i : i + cards_per_row]
             print(" ".join(row_cards))
         print()
 
@@ -542,11 +612,9 @@ class PlaySystem(esper.Processor):
                 else:
                     # 处理单张牌或特殊输入(RJ/BJ)
                     if card_input == "RJ" and "RJ" in card_counts:
-                        played_cards = self.find_cards_by_rank(
-                            hand.cards, "RJ", 1)
+                        played_cards = self.find_cards_by_rank(hand.cards, "RJ", 1)
                     elif card_input == "BJ" and "BJ" in card_counts:
-                        played_cards = self.find_cards_by_rank(
-                            hand.cards, "BJ", 1)
+                        played_cards = self.find_cards_by_rank(hand.cards, "BJ", 1)
                     elif len(card_input) == 1 and card_input in card_counts:
                         played_cards = self.find_cards_by_rank(
                             hand.cards, card_input, 1
@@ -643,18 +711,28 @@ class PlaySystem(esper.Processor):
         # 循环查找直到找到一个有牌的玩家
         while next_id in game_state.players_without_cards:
             next_id = (next_id + 1) % 6
+            print(f"跳过玩家 {next_id}，因为他没有牌。")
 
         return next_id
+
+    def register_turn_handler(self, player_id, handler):
+        """
+        注册玩家的回合处理器。
+
+        参数:
+            player_id (int): 玩家ID
+            handler (TurnHandlerInterface): 回合处理器实例
+        """
+        self.turn_handlers[player_id] = handler
 
     def _validate_handlers(self):
         """验证是否所有玩家都有对应的处理器"""
         # 固定为6个玩家
-        PLAYER_COUNT = 6
 
         # 检查每个玩家ID是否有处理器
         missing_handlers = []
         for player_id in range(PLAYER_COUNT):
-            if player_id not in self.turn_handlers and self.default_handler is None:
+            if player_id not in self.turn_handlers:
                 missing_handlers.append(player_id)
 
         # 如果有玩家没有处理器且没有默认处理器，抛出异常

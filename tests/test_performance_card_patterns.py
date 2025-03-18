@@ -59,7 +59,7 @@ def test_execution_time():
     # 使用 timeit 进行精确时间测量
     execution_time = timeit.timeit(
         lambda: CardPatternChecker._find_all_valid_plays(hand_cards),
-        number=1000  # 执行1000次
+        number=1000,  # 执行1000次
     )
 
     print(f"\n测试条件：36张随机牌")
@@ -106,7 +106,7 @@ def detailed_performance_profile():
     result = CardPatternChecker._find_all_valid_plays(hand_cards)
 
     profiler.disable()
-    stats = pstats.Stats(profiler).sort_stats('cumulative')
+    stats = pstats.Stats(profiler).sort_stats("cumulative")
     stats.print_stats()
 
     print(f"\n生成的有效出牌组合数量：{len(result)}")

@@ -31,13 +31,14 @@ class HumanPlayerTurnHandler(TurnHandlerInterface):
 
         # 获取可打出的牌
         playable_cards = self._get_playable_cards(
-            game_state, player_id, player_hand, play_system)
+            game_state, player_id, player_hand, play_system
+        )
 
         if not playable_cards:
             print("您没有可出的牌，自动跳过回合。")
             time.sleep(1.5)
 
-            if hasattr(play_system, 'pass_turn'):
+            if hasattr(play_system, "pass_turn"):
                 play_system.pass_turn(player_id)
             return
 
@@ -45,9 +46,9 @@ class HumanPlayerTurnHandler(TurnHandlerInterface):
         selected_action = self._get_player_action(player_hand, playable_cards)
 
         # 执行选择的操作
-        if selected_action.lower() == 'p' or selected_action.lower() == 'pass':
+        if selected_action.lower() == "p" or selected_action.lower() == "pass":
             print("您选择了跳过回合。")
-            if hasattr(play_system, 'pass_turn'):
+            if hasattr(play_system, "pass_turn"):
                 play_system.pass_turn(player_id)
         else:
             try:
@@ -61,17 +62,20 @@ class HumanPlayerTurnHandler(TurnHandlerInterface):
                         print("该牌不能打出！请重新选择。")
                         time.sleep(1)
                         self.handle_player_turn(
-                            game_state, player_id, play_system)  # 重新开始回合
+                            game_state, player_id, play_system
+                        )  # 重新开始回合
                 else:
                     print("无效的选择！请重新选择。")
                     time.sleep(1)
                     self.handle_player_turn(
-                        game_state, player_id, play_system)  # 重新开始回合
+                        game_state, player_id, play_system
+                    )  # 重新开始回合
             except ValueError:
                 print("无效的输入！请重新选择。")
                 time.sleep(1)
                 self.handle_player_turn(
-                    game_state, player_id, play_system)  # 重新开始回合
+                    game_state, player_id, play_system
+                )  # 重新开始回合
 
     def _display_game_status(self, game_state, player_id):
         """
@@ -81,33 +85,38 @@ class HumanPlayerTurnHandler(TurnHandlerInterface):
             game_state: 游戏状态组件
             player_id: 当前玩家ID
         """
-        print("\n" + "="*50)
+        print("\n" + "=" * 50)
         print(f"玩家 {player_id} 的回合")
-        print("="*50)
+        print("=" * 50)
 
         # 显示其他游戏信息（如果有）
-        if hasattr(game_state, 'get_game_info'):
+        if hasattr(game_state, "get_game_info"):
             game_info = game_state.get_game_info()
             print("游戏信息:")
             print(game_info)
 
         # 显示当前桌面牌（如果有）
-        if hasattr(game_state, 'get_current_card') and callable(game_state.get_current_card):
+        if hasattr(game_state, "get_current_card") and callable(
+            game_state.get_current_card
+        ):
             current_card = game_state.get_current_card()
             if current_card:
                 print(f"当前桌面牌: {current_card}")
 
         # 显示其他玩家信息
-        if hasattr(game_state, 'get_players_info') and callable(game_state.get_players_info):
+        if hasattr(game_state, "get_players_info") and callable(
+            game_state.get_players_info
+        ):
             players_info = game_state.get_players_info()
             print("\n其他玩家信息:")
             for p_id, info in players_info.items():
                 if p_id != player_id:  # 不显示当前玩家信息
-                    cards_count = len(info.get('hand', [])) if isinstance(
-                        info, dict) else "未知"
+                    cards_count = (
+                        len(info.get("hand", [])) if isinstance(info, dict) else "未知"
+                    )
                     print(f"玩家 {p_id}: {cards_count} 张牌")
 
-        print("-"*50)
+        print("-" * 50)
 
     def _display_player_hand(self, player_hand):
         """
@@ -119,7 +128,7 @@ class HumanPlayerTurnHandler(TurnHandlerInterface):
         print("\n您的手牌:")
         for i, card in enumerate(player_hand, 1):
             print(f"{i}. {card}")
-        print("-"*50)
+        print("-" * 50)
 
     def _get_playable_cards(self, game_state, player_id, player_hand, play_system):
         """
@@ -137,7 +146,9 @@ class HumanPlayerTurnHandler(TurnHandlerInterface):
         playable_cards = []
 
         # 如果系统提供了检查牌是否可出的方法，使用它
-        if hasattr(play_system, 'is_card_playable') and callable(play_system.is_card_playable):
+        if hasattr(play_system, "is_card_playable") and callable(
+            play_system.is_card_playable
+        ):
             for card in player_hand:
                 if play_system.is_card_playable(player_id, card, game_state):
                     playable_cards.append(card)

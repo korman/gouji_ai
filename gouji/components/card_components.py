@@ -85,3 +85,22 @@ class Hand:
         """
         self.cards: List[Card] = []
         self.sorted: bool = False  # 添加标记表示是否已排序
+
+    def show_hands(self):
+        """
+        输出手牌与数量,只显示点数
+        """
+        if not self.cards:
+            print("手牌为空")
+            return
+
+        print("玩家手牌:")
+        for card in self.cards:
+            print(card.get_rank_display(), end=" ")
+        print()
+
+    def show_card_count(self):
+        """
+        输出手牌数量
+        """
+        print(f"剩余手牌数量: {len(self.cards)}")

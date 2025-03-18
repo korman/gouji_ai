@@ -53,7 +53,9 @@ class DeckSystem(esper.Processor):
         for deck_id in range(4):
             # 常规牌
             for suit in [Suit.HEART, Suit.DIAMOND, Suit.CLUB, Suit.SPADE]:
-                for rank in [r for r in Rank if r != Rank.RED_JOKER and r != Rank.BLACK_JOKER]:
+                for rank in [
+                    r for r in Rank if r != Rank.RED_JOKER and r != Rank.BLACK_JOKER
+                ]:
                     self.deck.append(Card(suit, rank, deck_id))
 
             # 添加大小王

@@ -1,5 +1,6 @@
 from enum import Enum, auto
 
+PLAYER_COUNT = 6
 
 class Suit(Enum):
     """
@@ -15,6 +16,7 @@ class Suit(Enum):
         SPADE (str): 黑桃 ♠
         JOKER (str): 王牌 🃏
     """
+
     HEART = "♥"
     DIAMOND = "♦"
     CLUB = "♣"
@@ -34,6 +36,7 @@ class Rank(Enum):
         RED_JOKER (str): 大王
         BLACK_JOKER (str): 小王
     """
+
     ACE = "A"
     TWO = "2"
     THREE = "3"
@@ -47,7 +50,7 @@ class Rank(Enum):
     JACK = "J"
     QUEEN = "Q"
     KING = "K"
-    RED_JOKER = "大王"    # 大王
+    RED_JOKER = "大王"  # 大王
     BLACK_JOKER = "小王"  # 小王
 
     def get_value(self):
@@ -73,7 +76,7 @@ class Rank(Enum):
             Rank.ACE: 14,
             Rank.TWO: 15,
             Rank.BLACK_JOKER: 16,
-            Rank.RED_JOKER: 17
+            Rank.RED_JOKER: 17,
         }
         return value_map[self]
 
@@ -94,6 +97,7 @@ class Team(Enum):
         A: 第一个队伍
         B: 第二个队伍
     """
+
     A = auto()
     B = auto()
 
@@ -131,13 +135,14 @@ class ScoringRules:
 
     定义了根据玩家最终排名的积分规则
     """
+
     RANKING_SCORES = {
-        0: 2,   # 第1名 +2分
-        1: 1,   # 第2名 +1分
-        2: 0,   # 第3名 0分
-        3: 0,   # 第4名 0分
+        0: 2,  # 第1名 +2分
+        1: 1,  # 第2名 +1分
+        2: 0,  # 第3名 0分
+        3: 0,  # 第4名 0分
         4: -1,  # 第5名 -1分
-        5: -2   # 第6名 -2分
+        5: -2,  # 第6名 -2分
     }
 
     @classmethod

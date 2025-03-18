@@ -39,10 +39,7 @@ class GoujiGame:
         # 初始化游戏系统
         self.deck_system = DeckSystem()
         self.deal_system = DealSystem(self.deck_system)
-        self.play_system = PlaySystem(self.turn_handlers)
-
-        # 将回合处理器关联到出牌系统
-        self.play_system.set_turn_handlers(self.turn_handlers)
+        self.play_system = PlaySystem()
 
         # 添加处理器
         esper.add_processor(self.deck_system)
@@ -82,7 +79,7 @@ class GoujiGame:
         # 判断玩家类型（如果未显式指定，则根据处理器类名判断）
         if is_human is None:
             handler_class_name = handler.__class__.__name__.lower()
-            is_human = 'human' in handler_class_name or 'player' in handler_class_name
+            is_human = "human" in handler_class_name or "player" in handler_class_name
 
         # 更新玩家类型
         player_component.is_ai = not is_human
@@ -90,10 +87,18 @@ class GoujiGame:
         # 注册处理器
         self.turn_handlers[player_id] = handler
         print(f"成功为玩家 {player_id} 注册了回合处理器: {handler.__class__.__name__}")
-        print(f"玩家 {player_id} 现在是{'人类' if not player_component.is_ai else 'AI'}玩家")
+        print(
+            f"玩家 {player_id} 现在是{'人类' if not player_component.is_ai else 'AI'}玩家"
+        )
+
+        if self.play_system is not None:
+            self.play_system.register_turn_handler(player_id, handler)
+
         return True
 
-    def register_handlers_for_players(self, player_ids, handler_class, **handler_kwargs):
+    def register_handlers_for_players(
+        self, player_ids, handler_class, **handler_kwargs
+    ):
         """
         为多个玩家注册同一类型的处理器
 
@@ -149,7 +154,7 @@ class GoujiGame:
         if missing_handlers:
             print(f"警告: 以下玩家没有注册回合处理器: {missing_handlers}")
             response = input("是否继续游戏? (y/n): ")
-            if response.lower() != 'y':
+            if response.lower() != "y":
                 print("游戏已取消")
                 return
 
@@ -157,7 +162,8 @@ class GoujiGame:
         print("\n玩家信息:")
         for _, component in esper.get_component(PlayerComponent):
             print(
-                f"玩家{component.player_id+1} ({component.name}): {'AI' if component.is_ai else '人类'}")
+                f"玩家{component.player_id+1} ({component.name}): {'AI' if component.is_ai else '人类'}"
+            )
         print()
 
         print("够级游戏开始！")
@@ -187,8 +193,7 @@ class GoujiGame:
 
                     print("游戏结束！排名情况:")
                     for rank, player_id in enumerate(game_state.rankings):
-                        player_name = self.play_system.get_player_name_by_id(
-                            player_id)
+                        player_name = self.play_system.get_player_name_by_id(player_id)
 
                         # 获取该玩家的PlayerComponent 和 TeamComponent
                         player_component = None
@@ -196,7 +201,9 @@ class GoujiGame:
                         # 根据排名计算分数
                         score_change = ScoringRules.get_score_by_rank(rank)
 
-                        for _, (component, team_component) in esper.get_components(PlayerComponent, TeamComponent):
+                        for _, (component, team_component) in esper.get_components(
+                            PlayerComponent, TeamComponent
+                        ):
                             if component.player_id == player_id:
                                 player_component = component
                                 if team_component.team == Team.A:
@@ -211,15 +218,19 @@ class GoujiGame:
                         if player_component:
                             player_component.score += score_change
                             print(
-                                f"第{rank+1}名: {player_name} (分数变化: {'+' if score_change >= 0 else ''}{score_change})")
+                                f"第{rank+1}名: {player_name} (分数变化: {'+' if score_change >= 0 else ''}{score_change})"
+                            )
 
                     # 找出最后一名
                     if len(game_state.rankings) == 5:
-                        last_player_id = next(id for id in range(
-                            6) if id not in game_state.rankings)
+                        last_player_id = next(
+                            id for id in range(6) if id not in game_state.rankings
+                        )
 
                         # 获得最后一名玩家的PlayerComponent与TeamComponent
-                        for _, (component, team_component) in esper.get_components(PlayerComponent, TeamComponent):
+                        for _, (component, team_component) in esper.get_components(
+                            PlayerComponent, TeamComponent
+                        ):
                             if component.player_id == last_player_id:
                                 if team_component.team == Team.A:
                                     teamA_score -= 2
@@ -228,16 +239,19 @@ class GoujiGame:
                                 break
 
                         last_player_name = self.play_system.get_player_name_by_id(
-                            last_player_id)
+                            last_player_id
+                        )
                         print(f"最后一名: {last_player_name}")
 
                     # 根据teamA_score和teamB_score判断胜负
                     if teamA_score > teamB_score:
                         print(
-                            f"队伍A获胜！ A队得分: {teamA_score}, B队得分: {teamB_score}")
+                            f"队伍A获胜！ A队得分: {teamA_score}, B队得分: {teamB_score}"
+                        )
                     elif teamA_score < teamB_score:
                         print(
-                            f"队伍B获胜！ A队得分: {teamA_score}, B队得分: {teamB_score}")
+                            f"队伍B获胜！ A队得分: {teamA_score}, B队得分: {teamB_score}"
+                        )
                     else:
                         print(f"平局！ A队得分: {teamA_score}, B队得分: {teamB_score}")
 

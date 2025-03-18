@@ -18,7 +18,12 @@ class CardPatternChecker:
     def is_valid_pattern(cards):
         """检查是否是有效的牌型组合"""
         # 实现牌型合法性检查
-        pass
+
+        new_ranks = [card.rank for card in cards]
+        if not all(rank == new_ranks[0] for rank in new_ranks):
+            return False
+
+        return True
 
     @staticmethod
     def can_beat(new_cards: List[Card], previous_cards: List[Card] = None) -> bool:
@@ -63,7 +68,9 @@ class CardPatternChecker:
         return new_value > prev_value
 
     @staticmethod
-    def find_all_beating_combinations(hand_cards: List[Card], target_cards: List[Card] = None) -> List[List[Card]]:
+    def find_all_beating_combinations(
+        hand_cards: List[Card], target_cards: List[Card] = None
+    ) -> List[List[Card]]:
         """
         找出能大过目标牌的所有组合
 
