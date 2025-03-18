@@ -28,9 +28,12 @@ class PlaySystem(esper.Processor):
     def __init__(self):
         # 新增属性，用于跟踪桌面上最后出的牌
         self.last_played_cards = None
-        self.consecutive_passes = 0  # 跟踪连续pass的次数
+        self.consecutive_passes = 0
+        self.last_effective_player_id = None
 
-        self.last_effective_player_id = None  # 最后一个有效出牌的玩家ID
+        # 新增：用于跟踪当前回合中选择过牌的玩家
+        self.passed_players = set()
+        self.active_players = PLAYER_COUNT
 
     def add_handlder(self, player_id, handler):
         """
@@ -138,10 +141,12 @@ class PlaySystem(esper.Processor):
                         )
                         game_state.players_without_cards.add(current_player_id)
                         game_state.rankings.append(current_player_id)
+                        self.active_players -= 1
 
                     # 更新最后出的牌
                     self.last_played_cards = cards
                     self.last_effective_player_id = current_player_id
+                    self.passed_players.clear()  # 清空过牌玩家列表
                 elif action == PlayerAction.PASS:
                     print(f"{current_player_name} 选择PASS")
                     # 输出剩余手牌数量
@@ -149,6 +154,16 @@ class PlaySystem(esper.Processor):
                         current_player_id)
                     hand = esper.component_for_entity(current_entity, Hand)
                     print(f"{current_player_name} 剩余手牌数量: {len(hand.cards)}")
+
+                    print(f"当前过牌玩家数量: {len(self.passed_players)}")
+                    print(f"当前可出牌玩家数量: {self.active_players}")
+
+                    if len(self.passed_players) >= self.active_players:
+                        print("所有玩家都选择PASS，重置牌型")
+                        self.last_played_cards = None
+                        self.passed_players.clear()
+
+                    self.passed_players.add(current_player_id)
 
                 # 更新下一个玩家
                 game_state.current_player_id = self.find_next_player_with_cards(
