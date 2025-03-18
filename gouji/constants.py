@@ -2,6 +2,7 @@ from enum import Enum, auto
 
 PLAYER_COUNT = 6
 
+
 class Suit(Enum):
     """
     扑克牌花色枚举。
