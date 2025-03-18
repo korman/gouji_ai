@@ -132,7 +132,8 @@ class DefaultAITurnHandler(TurnHandlerInterface):
         card_values = {}
         for card in playable_cards:
             # 计算卡牌价值（这里需要根据具体游戏规则定制）
-            value = self._evaluate_card_value(card, game_state, player_id, play_system)
+            value = self._evaluate_card_value(
+                card, game_state, player_id, play_system)
             card_values[card] = value
 
         # 返回价值最高的牌
