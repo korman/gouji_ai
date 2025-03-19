@@ -1,8 +1,5 @@
-from gouji.core import GoujiGame
-from gouji.components import GameStateComponent, PlayerComponent
+from gouji.core import GoujiGame, DefaultAITurnHandler
 import time
-import timeit
-import sys
 
 
 def test_full_ai_game():
@@ -16,10 +13,11 @@ def test_full_ai_game():
     4. 检查基本的游戏结果
     """
     # 创建全AI游戏
-    game = GoujiGame(human_players=0)
+    game = GoujiGame()
 
     # 记录游戏开始时间
     start_time = time.time()
+    game.register_handlers_for_players(list(range(6)), DefaultAITurnHandler)
 
     # 运行游戏
     game.run()
