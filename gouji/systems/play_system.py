@@ -45,6 +45,19 @@ class PlaySystem(esper.Processor):
         """
         self.turn_handlers[player_id] = handler
 
+    def get_last_effective_player_id(self):
+        """
+        获取最后一个进行有效操作的玩家ID。
+
+        在游戏过程中，当玩家执行了有效操作后，系统会记录该玩家的ID。
+        此函数用于获取该记录，以便于游戏逻辑判断、状态追踪或规则应用。
+
+        返回:
+            int: 最后一个执行有效操作的玩家ID。如果游戏刚开始或尚无有效操作，
+                则返回初始设置的值。
+        """
+        return self.last_effective_player_id
+
     def get_last_played_cards(self):
         """
         获取最后出的牌。

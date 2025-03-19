@@ -1,5 +1,6 @@
 from gouji.core import GoujiGame
 from gouji.core import DefaultAITurnHandler
+from gouji.core import HumanPlayerTurnHandler
 
 if __name__ == "__main__":
     """
@@ -11,7 +12,13 @@ if __name__ == "__main__":
 
     game = GoujiGame()
 
+    # 为玩家0注册人类处理器
+    game.register_handlers_for_players([0], HumanPlayerTurnHandler)
+
+    # 为玩家1-5注册AI处理器
+    game.register_handlers_for_players(list(range(1, 6)), DefaultAITurnHandler)
+
     # 创建6个默认AI处理器，并且注册到游戏中
-    game.register_handlers_for_players(list(range(6)), DefaultAITurnHandler)
+    # game.register_handlers_for_players(list(range(6)), DefaultAITurnHandler)
 
     game.run()
