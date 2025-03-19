@@ -74,8 +74,7 @@ class PlaySystem(esper.Processor):
                         for id in range(6)
                         if id not in game_state.players_without_cards
                     )
-                    last_player_name = self.get_player_name_by_id(
-                        last_player_id)
+                    last_player_name = self.get_player_name_by_id(last_player_id)
                     print(f"\n🎮 游戏结束! {last_player_name} 成为最后一名!")
                     game_state.phase = "game_over"
                     return
@@ -100,8 +99,7 @@ class PlaySystem(esper.Processor):
                     game_state, current_player_id, self
                 )
 
-                current_player_name = self.get_player_name_by_id(
-                    current_player_id)
+                current_player_name = self.get_player_name_by_id(current_player_id)
 
                 # 处理玩家的出牌动作
                 if action == PlayerAction.PLAY:
@@ -118,8 +116,7 @@ class PlaySystem(esper.Processor):
                         print("错误: 无法打出这些牌，请选择其他牌")
                         continue
 
-                    current_entity = self.get_player_entity_by_id(
-                        current_player_id)
+                    current_entity = self.get_player_entity_by_id(current_player_id)
 
                     hand = esper.component_for_entity(current_entity, Hand)
 
@@ -150,8 +147,7 @@ class PlaySystem(esper.Processor):
                 elif action == PlayerAction.PASS:
                     print(f"{current_player_name} 选择PASS")
                     # 输出剩余手牌数量
-                    current_entity = self.get_player_entity_by_id(
-                        current_player_id)
+                    current_entity = self.get_player_entity_by_id(current_player_id)
                     hand = esper.component_for_entity(current_entity, Hand)
                     print(f"{current_player_name} 剩余手牌数量: {len(hand.cards)}")
 
@@ -234,8 +230,7 @@ class PlaySystem(esper.Processor):
                         self.consecutive_passes += 1
 
                         # 计算当前可出牌的玩家数量
-                        active_players = 6 - \
-                            len(game_state.players_without_cards)
+                        active_players = 6 - len(game_state.players_without_cards)
 
                         # 如果连续pass达到其他可出牌玩家数量，重置牌型
                         if self.consecutive_passes >= (active_players - 1):
@@ -269,8 +264,7 @@ class PlaySystem(esper.Processor):
                                     for card in hand.cards
                                     if card.get_rank_display() == rank_value
                                 ]
-                                current_played_cards = random.sample(
-                                    candidates, count)
+                                current_played_cards = random.sample(candidates, count)
                             else:
                                 print(f"您没有{count}张{rank_value}牌。")
                                 continue
@@ -352,8 +346,7 @@ class PlaySystem(esper.Processor):
                         self.last_effective_player_id = game_state.human_player_id
 
                     # 显示打出的牌
-                    ranks = [card.get_rank_display()
-                             for card in current_played_cards]
+                    ranks = [card.get_rank_display() for card in current_played_cards]
                     print(
                         f"{player.name} ({team.team.name}队) 打出了: {' '.join(ranks)}"
                     )
@@ -366,8 +359,7 @@ class PlaySystem(esper.Processor):
                         print(
                             f"\n🎉 {player.name} ({team.team.name}队) 出完了所有牌，排名第{len(game_state.rankings) + 1}!"
                         )
-                        game_state.players_without_cards.add(
-                            game_state.human_player_id)
+                        game_state.players_without_cards.add(game_state.human_player_id)
                         game_state.rankings.append(game_state.human_player_id)
 
                         # 检查是否只剩最后一名玩家
@@ -463,8 +455,7 @@ class PlaySystem(esper.Processor):
                     print(
                         f"\n🏆 {player.name} ({team.team.name}队) 出完了所有牌，排名第{len(game_state.rankings) + 1}!"
                     )
-                    game_state.players_without_cards.add(
-                        game_state.current_player_id)
+                    game_state.players_without_cards.add(game_state.current_player_id)
                     game_state.rankings.append(game_state.current_player_id)
 
                     # 检查是否只剩最后一名玩家
@@ -474,15 +465,13 @@ class PlaySystem(esper.Processor):
                             for id in range(6)
                             if id not in game_state.players_without_cards
                         )
-                        last_player_name = self.get_player_name_by_id(
-                            last_player_id)
+                        last_player_name = self.get_player_name_by_id(last_player_id)
                         print(f"\n🎮 游戏结束! {last_player_name} 成为最后一名!")
                         game_state.phase = "game_over"
                         return
 
             # 更新下一个玩家
-            game_state.current_player_id = self.find_next_player_with_cards(
-                game_state)
+            game_state.current_player_id = self.find_next_player_with_cards(game_state)
 
             # 如果下一个玩家是人类，提示并显示手牌
             if game_state.current_player_id == game_state.human_player_id:
@@ -543,7 +532,7 @@ class PlaySystem(esper.Processor):
         cards_per_row = 10
 
         for i in range(0, len(cards), cards_per_row):
-            row_cards = cards[i: i + cards_per_row]
+            row_cards = cards[i : i + cards_per_row]
             print(" ".join(row_cards))
         print()
 
@@ -638,11 +627,9 @@ class PlaySystem(esper.Processor):
                 else:
                     # 处理单张牌或特殊输入(RJ/BJ)
                     if card_input == "RJ" and "RJ" in card_counts:
-                        played_cards = self.find_cards_by_rank(
-                            hand.cards, "RJ", 1)
+                        played_cards = self.find_cards_by_rank(hand.cards, "RJ", 1)
                     elif card_input == "BJ" and "BJ" in card_counts:
-                        played_cards = self.find_cards_by_rank(
-                            hand.cards, "BJ", 1)
+                        played_cards = self.find_cards_by_rank(hand.cards, "BJ", 1)
                     elif len(card_input) == 1 and card_input in card_counts:
                         played_cards = self.find_cards_by_rank(
                             hand.cards, card_input, 1
