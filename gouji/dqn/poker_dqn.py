@@ -12,7 +12,7 @@ class PokerDQN(nn.Module):
             nn.Linear(state_size, hidden_size),
             nn.ReLU(),
             nn.Linear(hidden_size, hidden_size),
-            nn.ReLU()
+            nn.ReLU(),
         )
 
         # 优势流和价值流 (Dueling DQN架构)

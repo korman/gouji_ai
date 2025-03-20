@@ -15,7 +15,9 @@ from .poker_dqn import PokerDQN
 class DQNTurnHandler(TurnHandlerInterface):
     """基于DQN的智能体回合处理器"""
 
-    def __init__(self, state_size=None, action_size=200, hidden_size=256, model_path=None):
+    def __init__(
+        self, state_size=None, action_size=200, hidden_size=256, model_path=None
+    ):
         """
         初始化DQN智能体
 
@@ -30,8 +32,7 @@ class DQNTurnHandler(TurnHandlerInterface):
         self.hidden_size = hidden_size
         self.model_path = model_path
         self.state_size = state_size
-        self.device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # 网络和训练相关属性（延迟初始化）
         self.policy_net = None
@@ -76,22 +77,24 @@ class DQNTurnHandler(TurnHandlerInterface):
 
         # 初始化策略网络
         self.policy_net = PokerDQN(
-            self.state_size, self.action_size, self.hidden_size).to(self.device)
+            self.state_size, self.action_size, self.hidden_size
+        ).to(self.device)
 
         # 如果提供了模型路径，加载预训练模型
         if self.model_path:
-            self.policy_net.load_state_dict(torch.load(
-                self.model_path, map_location=self.device))
+            self.policy_net.load_state_dict(
+                torch.load(self.model_path, map_location=self.device)
+            )
 
         # 初始化目标网络
         self.target_net = PokerDQN(
-            self.state_size, self.action_size, self.hidden_size).to(self.device)
+            self.state_size, self.action_size, self.hidden_size
+        ).to(self.device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
 
         # 初始化优化器
-        self.optimizer = optim.Adam(
-            self.policy_net.parameters(), lr=self.learning_rate)
+        self.optimizer = optim.Adam(self.policy_net.parameters(), lr=self.learning_rate)
 
     def _initialize_card_mapping(self):
         """初始化卡牌到索引的映射"""
@@ -102,8 +105,7 @@ class DQNTurnHandler(TurnHandlerInterface):
         self.idx_to_card = {}
 
         suits = ["SPADE", "HEART", "CLUB", "DIAMOND"]
-        values = ["3", "4", "5", "6", "7", "8",
-                  "9", "10", "J", "Q", "K", "A", "2"]
+        values = ["3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A", "2"]
 
         # 普通牌
         idx = 0
@@ -165,8 +167,7 @@ class DQNTurnHandler(TurnHandlerInterface):
             valid_actions_mask[i + 1] = 1
 
         # 编码当前状态
-        current_state = self._encode_game_state(
-            game_state, player_id, play_system)
+        current_state = self._encode_game_state(game_state, player_id, play_system)
 
         # 如果状态大小是第一次确定，初始化网络
         if self.state_size is None:
@@ -182,14 +183,16 @@ class DQNTurnHandler(TurnHandlerInterface):
             done = self._is_game_over(game_state)
 
             # 存储经验
-            self.current_episode_memory.append((
-                self.last_state,
-                self.last_action_idx,
-                reward,
-                current_state,
-                done,
-                self.last_valid_actions_mask
-            ))
+            self.current_episode_memory.append(
+                (
+                    self.last_state,
+                    self.last_action_idx,
+                    reward,
+                    current_state,
+                    done,
+                    self.last_valid_actions_mask,
+                )
+            )
 
             # 如果游戏结束，处理整个回合的经验
             if done:
@@ -251,7 +254,11 @@ class DQNTurnHandler(TurnHandlerInterface):
 
         # TODO: 获取所有玩家信息，包括手牌数量、队伍等
         # 示例代码:
-        for entity, (player_comp, hand_comp, team_comp) in play_system.world.get_components(PlayerComponent, Hand, TeamComponent):
+        for entity, (
+            player_comp,
+            hand_comp,
+            team_comp,
+        ) in play_system.world.get_components(PlayerComponent, Hand, TeamComponent):
             # 跳过当前玩家
             if player_comp.player_id == player_id:
                 continue
@@ -259,7 +266,7 @@ class DQNTurnHandler(TurnHandlerInterface):
             # 添加玩家信息
             player_info = [
                 len(hand_comp.cards) / 20,  # 归一化手牌数量
-                1 if team_comp.team == team.team else 0  # 是否是队友
+                1 if team_comp.team == team.team else 0,  # 是否是队友
             ]
             all_players_info.extend(player_info)
 
@@ -274,13 +281,15 @@ class DQNTurnHandler(TurnHandlerInterface):
         game_state_info = []
 
         # 合并所有特征
-        state_vector = np.concatenate([
-            hand_encoding,
-            last_played_encoding,
-            np.array(all_players_info),
-            player_position_encoding,
-            np.array(game_state_info)
-        ])
+        state_vector = np.concatenate(
+            [
+                hand_encoding,
+                last_played_encoding,
+                np.array(all_players_info),
+                player_position_encoding,
+                np.array(game_state_info),
+            ]
+        )
 
         return state_vector
 
@@ -316,14 +325,14 @@ class DQNTurnHandler(TurnHandlerInterface):
         """
         if not self.is_training:
             # 测试模式，直接使用最佳动作
-            state_tensor = torch.FloatTensor(
-                state).unsqueeze(0).to(self.device)
+            state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
             with torch.no_grad():
                 q_values = self.policy_net(state_tensor)
 
             # 应用动作掩码
-            masked_q_values = q_values.cpu().numpy(
-            )[0] * valid_actions_mask - 9999999 * (1 - valid_actions_mask)
+            masked_q_values = q_values.cpu().numpy()[
+                0
+            ] * valid_actions_mask - 9999999 * (1 - valid_actions_mask)
             return np.argmax(masked_q_values)
 
         # 训练模式，使用ε-贪婪策略
@@ -333,14 +342,14 @@ class DQNTurnHandler(TurnHandlerInterface):
             return np.random.choice(valid_indices)
         else:
             # 利用：选择Q值最大的动作
-            state_tensor = torch.FloatTensor(
-                state).unsqueeze(0).to(self.device)
+            state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
             with torch.no_grad():
                 q_values = self.policy_net(state_tensor)
 
             # 应用动作掩码
-            masked_q_values = q_values.cpu().numpy(
-            )[0] * valid_actions_mask - 9999999 * (1 - valid_actions_mask)
+            masked_q_values = q_values.cpu().numpy()[
+                0
+            ] * valid_actions_mask - 9999999 * (1 - valid_actions_mask)
             return np.argmax(masked_q_values)
 
     def _calculate_reward(self, game_state, player_id, play_system) -> float:
@@ -420,8 +429,9 @@ class DQNTurnHandler(TurnHandlerInterface):
     def _train_network(self):
         """训练DQN网络"""
         # 从经验回放中采样
-        states, actions, rewards, next_states, dones, valid_actions_masks = self.memory.sample(
-            self.batch_size)
+        states, actions, rewards, next_states, dones, valid_actions_masks = (
+            self.memory.sample(self.batch_size)
+        )
 
         # 转移到设备
         states = states.to(self.device)
@@ -433,15 +443,15 @@ class DQNTurnHandler(TurnHandlerInterface):
 
         # 计算当前Q值
         q_values = self.policy_net(states)
-        q_values_for_actions = q_values.gather(
-            1, actions.unsqueeze(1)).squeeze(1)
+        q_values_for_actions = q_values.gather(1, actions.unsqueeze(1)).squeeze(1)
 
         # 计算目标Q值
         with torch.no_grad():
             next_q_values = self.target_net(next_states)
             # 应用有效动作掩码
-            masked_next_q = next_q_values * valid_actions_masks - \
-                9999999 * (1 - valid_actions_masks)
+            masked_next_q = next_q_values * valid_actions_masks - 9999999 * (
+                1 - valid_actions_masks
+            )
             max_next_q = masked_next_q.max(1)[0]
             target_q_values = rewards + (1 - dones) * self.gamma * max_next_q
 
@@ -489,7 +499,6 @@ class DQNTurnHandler(TurnHandlerInterface):
             print("警告: 模型未初始化，无法加载")
             return
 
-        self.policy_net.load_state_dict(
-            torch.load(path, map_location=self.device))
+        self.policy_net.load_state_dict(torch.load(path, map_location=self.device))
         self.target_net.load_state_dict(self.policy_net.state_dict())
         print(f"模型已加载: {path}")
