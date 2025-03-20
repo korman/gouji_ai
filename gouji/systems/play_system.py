@@ -35,16 +35,6 @@ class PlaySystem(esper.Processor):
         self.passed_players = set()
         self.active_players = PLAYER_COUNT
 
-    def add_handlder(self, player_id, handler):
-        """
-        为指定玩家ID添加回合处理器。
-
-        参数:
-            player_id (int): 玩家ID
-            handler (TurnHandlerInterface): 回合处理器实例
-        """
-        self.turn_handlers[player_id] = handler
-
     def get_last_effective_player_id(self):
         """
         获取最后一个进行有效操作的玩家ID。
