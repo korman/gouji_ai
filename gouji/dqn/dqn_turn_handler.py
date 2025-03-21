@@ -53,11 +53,15 @@ class DQNTurnHandler(TurnHandlerInterface):
         # 状态空间大小 (手牌编码 + 最后出牌编码 + 其他玩家状态)
         # 计算牌值范围（3-17，3到A再到2，最后是小王和大王）
         self.rank_range = 15
+
+        # 调整归一化因子，最多可能有16张同值牌(4副牌×4张)
+        self.max_cards_per_rank = 16
+
         # 手牌编码 + 最后出牌编码 + 其他玩家手牌数量
         self.state_size = self.rank_range * 2 + 5
 
         # 动作空间大小 (动作ID到实际牌组合的映射)
-        self.action_size = 200  # 预估大小，实际上可能更大或更小
+        self.action_size = 500  # 从200增加到500
         self.action_mapping = {}  # 动作ID -> 牌组合
         self.reverse_action_mapping = {}  # 牌组合的哈希 -> 动作ID
 
@@ -70,7 +74,7 @@ class DQNTurnHandler(TurnHandlerInterface):
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
         # 经验回放
-        self.replay_buffer = ReplayBuffer()
+        self.replay_buffer = ReplayBuffer(capacity=20000)
 
         # 训练计数器
         self.train_counter = 0
@@ -102,15 +106,14 @@ class DQNTurnHandler(TurnHandlerInterface):
         """
         state = np.zeros(self.state_size)
 
-        # 首先计算手牌中每个牌值的数量
+        # 计算手牌中每个牌值的数量
         hand_rank_counts = np.zeros(self.rank_range)
         for card in hand_cards:
-            # 索引为牌值减3（因为最小的牌是3）
             rank_index = card.rank.value - 3
             hand_rank_counts[rank_index] += 1
 
         # 编码手牌 (前15位) - 每种牌值的数量
-        state[: self.rank_range] = hand_rank_counts / 4.0  # 归一化，假设最多4张同值牌
+        state[: self.rank_range] = hand_rank_counts / self.max_cards_per_rank
 
         # 计算最后出的牌中每个牌值的数量
         last_rank_counts = np.zeros(self.rank_range)
