@@ -32,8 +32,7 @@ class DQNTurnHandler(TurnHandlerInterface):
         self.hidden_size = hidden_size
         self.model_path = model_path
         self.state_size = state_size
-        self.device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # 网络和训练相关属性（延迟初始化）
         self.policy_net = None
@@ -95,8 +94,7 @@ class DQNTurnHandler(TurnHandlerInterface):
         self.target_net.eval()
 
         # 初始化优化器
-        self.optimizer = optim.Adam(
-            self.policy_net.parameters(), lr=self.learning_rate)
+        self.optimizer = optim.Adam(self.policy_net.parameters(), lr=self.learning_rate)
 
     def _initialize_card_mapping(self):
         """初始化卡牌到索引的映射（仅基于牌值，完全忽略花色）"""
@@ -199,8 +197,7 @@ class DQNTurnHandler(TurnHandlerInterface):
             valid_actions_mask[i + 1] = 1
 
         # 编码当前游戏状态
-        current_state = self._encode_game_state(
-            game_state, player_id, play_system)
+        current_state = self._encode_game_state(game_state, player_id, play_system)
 
         # 如果状态大小是第一次确定，初始化网络
         if self.state_size is None:
@@ -329,8 +326,7 @@ class DQNTurnHandler(TurnHandlerInterface):
         """
         if not self.is_training:
             # 测试模式，直接使用最佳动作
-            state_tensor = torch.FloatTensor(
-                state).unsqueeze(0).to(self.device)
+            state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
             with torch.no_grad():
                 q_values = self.policy_net(state_tensor)
 
@@ -347,8 +343,7 @@ class DQNTurnHandler(TurnHandlerInterface):
             return np.random.choice(valid_indices)
         else:
             # 利用：选择Q值最大的动作
-            state_tensor = torch.FloatTensor(
-                state).unsqueeze(0).to(self.device)
+            state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
             with torch.no_grad():
                 q_values = self.policy_net(state_tensor)
 
@@ -449,8 +444,7 @@ class DQNTurnHandler(TurnHandlerInterface):
 
         # 计算当前Q值
         q_values = self.policy_net(states)
-        q_values_for_actions = q_values.gather(
-            1, actions.unsqueeze(1)).squeeze(1)
+        q_values_for_actions = q_values.gather(1, actions.unsqueeze(1)).squeeze(1)
 
         # 计算目标Q值
         with torch.no_grad():
@@ -506,7 +500,6 @@ class DQNTurnHandler(TurnHandlerInterface):
             print("警告: 模型未初始化，无法加载")
             return
 
-        self.policy_net.load_state_dict(
-            torch.load(path, map_location=self.device))
+        self.policy_net.load_state_dict(torch.load(path, map_location=self.device))
         self.target_net.load_state_dict(self.policy_net.state_dict())
         print(f"模型已加载: {path}")
