@@ -1,29 +1,84 @@
+import esper
 from gouji.core import GoujiGame
 from gouji.core import DefaultAITurnHandler
 from gouji.core import HumanPlayerTurnHandler
+from gouji.dqn import DQNTurnHandler
+from gouji.dqn import DQNTrainer
+from gouji.components import GameStateComponent
+
+# if __name__ == "__main__":
+#     """
+#     游戏主入口点。
+
+#     创建GoujiGame实例并启动游戏。
+#     当程序作为脚本直接运行时执行此代码块。
+#     """
+
+#     game = GoujiGame()
+
+#     # 为玩家0注册人类处理器
+#     game.register_handlers_for_players([0], HumanPlayerTurnHandler)
+
+#     # 为玩家1-5注册AI处理器
+#     game.register_handlers_for_players(list(range(1, 6)), DefaultAITurnHandler)
+
+#     # 创建6个默认AI处理器，并且注册到游戏中
+#     # game.register_handlers_for_players(list(range(6)), DefaultAITurnHandler)
+
+#     game.run()
 
 if __name__ == "__main__":
     """
-    游戏主入口点。
+    游戏主入口点 - DQN训练模式。
 
-    创建GoujiGame实例并启动游戏。
-    当程序作为脚本直接运行时执行此代码块。
+    创建GoujiGame实例并使用DQN进行训练。
     """
-
+    # 创建游戏实例
     game = GoujiGame()
 
-    # 为玩家0注册人类处理器
-    game.register_handlers_for_players([0], HumanPlayerTurnHandler)
+    # 创建DQN处理器 (可以为多个玩家创建不同的DQN处理器)
+    dqn_handler0 = DQNTurnHandler()
+    dqn_handler1 = DQNTurnHandler()
 
-    # 为玩家1-5注册AI处理器
-    game.register_handlers_for_players(list(range(1, 6)), DefaultAITurnHandler)
+    # 为玩家0和1注册DQN处理器
+    game.register_handler_for_player(0, dqn_handler0)
+    game.register_handler_for_player(1, dqn_handler1)
 
-    # 创建6个默认AI处理器，并且注册到游戏中
-    # game.register_handlers_for_players(list(range(6)), DefaultAITurnHandler)
+    # 为玩家2-5注册普通AI处理器
+    game.register_handlers_for_players(list(range(2, 6)), DefaultAITurnHandler)
 
+    # 创建DQN训练器
+    trainer = DQNTrainer(num_episodes=5000)
+
+    # 注册DQN处理器到训练器
+    trainer.register_dqn_handler(0, dqn_handler0)
+    trainer.register_dqn_handler(1, dqn_handler1)
+
+    # 开始训练
+    print("开始DQN训练...")
+    trainer.train()
+
+    # 训练完成后保存模型
+    dqn_handler0.save_model("models/dqn_player0_final.pt")
+    dqn_handler1.save_model("models/dqn_player1_final.pt")
+
+    # 评估模型
+    print("开始评估模型...")
+    trainer.evaluate(num_games=100)
+
+    # 可选：使用训练好的DQN模型再玩一局
+    print("\n使用训练好的模型进行一局游戏演示...")
+    # 设置为评估模式
+    dqn_handler0.set_training_mode(False)
+    dqn_handler1.set_training_mode(False)
+    # 重置游戏状态
+    for _, game_state in esper.get_component(GameStateComponent):
+        game_state.phase = "dealing"
+        game_state.current_player_id = 0
+        game_state.players_without_cards.clear()
+        game_state.rankings.clear()
+    # 运行一局游戏
     game.run()
-
-
 
 #  使用预处理的数据训练模型
 

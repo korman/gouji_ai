@@ -1,505 +1,138 @@
 import esper
-import numpy as np
-import torch
-import torch.optim as optim
-import torch.nn as nn
-from .replay_buffer import ReplayBuffer
-from ..interface import TurnHandlerInterface
-from ..components import PlayerComponent, Hand, TeamComponent, Card
-from ..utils import CardPatternChecker
-from ..interface import PlayerAction
-from typing import List, Tuple, Dict, Any
-from .poker_dqn import PokerDQN
+from ..components import GameStateComponent
 
 
-class DQNTurnHandler(TurnHandlerInterface):
-    """基于DQN的智能体回合处理器"""
+class DQNTrainer:
+    """
+    DQN训练器，用于训练和评估DQN AI
+    """
 
-    def __init__(
-        self, state_size=None, action_size=200, hidden_size=256, model_path=None
-    ):
+    def __init__(self, num_episodes=10000):
         """
-        初始化DQN智能体
+        初始化训练器
 
         参数:
-            state_size: 状态向量大小（如未指定，将在首次调用时自动计算）
-            action_size: 动作空间大小（最大可能的出牌组合数量）
-            hidden_size: 神经网络隐藏层大小
-            model_path: 预训练模型路径（可选）
+            num_episodes: 训练轮数
         """
-        # 基础属性
-        self.action_size = action_size
-        self.hidden_size = hidden_size
-        self.model_path = model_path
-        self.state_size = state_size
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.num_episodes = num_episodes
+        self.dqn_handlers = {}  # 所有DQN处理器
+        self.episode_rewards = []  # 每轮奖励
 
-        # 网络和训练相关属性（延迟初始化）
-        self.policy_net = None
-        self.target_net = None
-        self.optimizer = None
-        self.memory = ReplayBuffer(capacity=50000)
+    def register_dqn_handler(self, player_id, handler):
+        """注册DQN处理器"""
+        self.dqn_handlers[player_id] = handler
 
-        # 训练参数
-        self.gamma = 0.99  # 折扣因子
-        self.epsilon = 1.0  # 探索率
-        self.epsilon_min = 0.1
-        self.epsilon_decay = 0.995
-        self.learning_rate = 0.0001
-        self.batch_size = 64
-        self.update_target_every = 10
+    def train(self):
+        """开始训练流程"""
+        print(f"开始DQN训练，共{self.num_episodes}轮...")
 
-        # 训练状态
-        self.train_step = 0
-        self.is_training = False
+        for episode in range(self.num_episodes):
+            # 重置游戏
+            self._reset_game()
 
-        # 上一步信息（用于训练）
-        self.last_state = None
-        self.last_action = None
-        self.last_action_idx = None
-        self.last_valid_actions_mask = None
+            # 运行一轮游戏
+            episode_reward = self._run_episode()
+            self.episode_rewards.append(episode_reward)
 
-        # 游戏状态跟踪
-        self.current_episode_memory = []
+            # 每100轮输出一次进度
+            if (episode + 1) % 100 == 0:
+                avg_reward = sum(self.episode_rewards[-100:]) / 100
+                print(
+                    f"轮次: {episode+1}/{self.num_episodes}, 平均奖励: {avg_reward:.2f}, 探索率: {list(self.dqn_handlers.values())[0].epsilon:.2f}"
+                )
 
-        # 卡牌映射（将在首次调用时初始化）
-        self.card_to_idx = None
-        self.idx_to_card = None
-        self._initialize_card_mapping()
+                # 保存检查点
+                for player_id, handler in self.dqn_handlers.items():
+                    handler.save_model(
+                        f"model_checkpoints/dqn_player_{player_id}_ep_{episode+1}.pt"
+                    )
 
-    def _initialize_networks(self):
-        """初始化神经网络（在第一次状态计算后调用）"""
-        if self.policy_net is not None:
-            return  # 已经初始化
+        print("训练完成")
 
-        if self.state_size is None:
-            raise ValueError("无法初始化网络：状态大小未知")
+    def _reset_game(self):
+        """重置游戏状态"""
+        # 获取游戏状态组件并重置
+        for _, game_state in esper.get_component(GameStateComponent):
+            game_state.phase = "dealing"
+            game_state.current_player_id = 0
+            game_state.players_without_cards.clear()
+            game_state.rankings.clear()
 
-        # 初始化策略网络
-        self.policy_net = PokerDQN(
-            self.state_size, self.action_size, self.hidden_size
-        ).to(self.device)
+        # 重新发牌
+        # 注意：这里需要有一个发牌系统，可能需要额外实现
+        # 或者调用游戏中已有的发牌逻辑
 
-        # 如果提供了模型路径，加载预训练模型
-        if self.model_path:
-            self.policy_net.load_state_dict(
-                torch.load(self.model_path, map_location=self.device)
-            )
-
-        # 初始化目标网络
-        self.target_net = PokerDQN(
-            self.state_size, self.action_size, self.hidden_size
-        ).to(self.device)
-        self.target_net.load_state_dict(self.policy_net.state_dict())
-        self.target_net.eval()
-
-        # 初始化优化器
-        self.optimizer = optim.Adam(self.policy_net.parameters(), lr=self.learning_rate)
-
-    def _initialize_card_mapping(self):
-        """初始化卡牌到索引的映射（仅基于牌值，完全忽略花色）"""
-        self.card_to_idx = {}
-        self.idx_to_card = {}
-
-        # 牌值映射表
-        self.value_map = {
-            "3": 3,
-            "4": 4,
-            "5": 5,
-            "6": 6,
-            "7": 7,
-            "8": 8,
-            "9": 9,
-            "10": 10,
-            "J": 11,
-            "Q": 12,
-            "K": 13,
-            "A": 14,
-            "2": 15,
-        }
-
-        # 反向映射（用于从数值找到牌面值）
-        self.value_to_str = {v: k for k, v in self.value_map.items()}
-
-        # 只映射牌值，不考虑花色
-        for idx, (value_str, numerical_value) in enumerate(self.value_map.items()):
-            # 由于我们只关心牌值，所以可以使用任意花色或固定花色
-            # 这里选择SPADE作为默认花色
-            card = Card(suit="SPADE", value=value_str)
-
-            # 建立映射关系
-            self.card_to_idx[card] = idx
-            self.idx_to_card[idx] = card
-
-        print(f"卡牌值映射已创建，共{len(self.value_map)}种不同牌值")
-
-    def _get_card_index(self, card) -> int:
+    def _run_episode(self):
         """
-        获取卡牌的索引，仅基于牌值
+        运行一轮游戏，返回总奖励
+        """
+        total_reward = 0
+        game_over = False
+
+        # 将所有DQN处理器设置为训练模式
+        for handler in self.dqn_handlers.values():
+            handler.set_training_mode(True)
+
+        # 循环直到游戏结束
+        while not game_over:
+            # 让游戏系统处理一回合
+            esper.process()  # 使用esper.process()替代self.world.process()
+
+            # 检查游戏是否结束
+            for _, game_state in esper.get_component(GameStateComponent):
+                if game_state.phase == "game_over":
+                    game_over = True
+                    break
+
+            # 累计奖励
+            for player_id, handler in self.dqn_handlers.items():
+                # 这里假设DQN处理器内部会记录奖励
+                # 实际实现可能需要额外的奖励计算逻辑
+                total_reward += (
+                    handler.episode_reward if hasattr(handler, "episode_reward") else 0
+                )
+
+        return total_reward
+
+    def evaluate(self, num_games=100):
+        """
+        评估训练好的模型
 
         参数:
-            card: 卡牌对象
-
-        返回:
-            牌值对应的索引(0-12)
+            num_games: 评估的游戏局数
         """
-        # 找到与该牌相同牌值的参考牌
-        for ref_card, idx in self.card_to_idx.items():
-            if ref_card.value == card.value:
-                return idx
-
-        # 如果找不到对应牌值
-        print(f"警告: 无法找到牌值 {card.value} 的索引")
-        return 0
-
-    def handle_player_turn(
-        self, game_state, player_id, play_system
-    ) -> Tuple[PlayerAction, List[Card]]:
-        """
-        处理DQN智能体的回合决策
-
-        参数:
-            game_state: 游戏状态组件
-            player_id: AI玩家ID
-            play_system: 出牌系统的引用
-
-        返回:
-            (动作类型, 出牌列表)
-        """
-        # 获取当前玩家实体和组件
-        ai_entity = play_system.get_player_entity_by_id(player_id)
-
-        if ai_entity is None:
-            print(f"DQN玩家 {player_id} 不存在")
-            return PlayerAction.PASS, []
-
-        # 获取玩家手牌和其他信息
-        hand = esper.component_for_entity(ai_entity, Hand)
-        team = esper.component_for_entity(ai_entity, TeamComponent)
-        last_played_cards = play_system.get_last_played_cards()
-
-        # 获取所有可能的出牌组合（格式如[[10,10,10], [K,K,K,K]]）
-        beating_combinations = CardPatternChecker.find_all_beating_combinations(
-            hand.cards, last_played_cards
-        )
-
-        # 准备有效动作
-        valid_actions = []
-        valid_actions.append([])  # PASS动作作为第一个选项
-        valid_actions.extend(beating_combinations)  # 添加所有可行的出牌组合
-
-        # 创建动作掩码(0=非法,1=合法)
-        valid_actions_mask = np.zeros(self.action_size)
-        valid_actions_mask[0] = 1  # PASS总是合法的
-
-        # 为每个可行的出牌组合设置掩码
-        for i in range(min(len(beating_combinations), self.action_size - 1)):
-            valid_actions_mask[i + 1] = 1
-
-        # 编码当前游戏状态
-        current_state = self._encode_game_state(game_state, player_id, play_system)
-
-        # 如果状态大小是第一次确定，初始化网络
-        if self.state_size is None:
-            self.state_size = len(current_state)
-            self._initialize_networks()
-
-        # 训练逻辑保持不变...
-        # [代码略]
-
-        # 选择动作
-        action_idx = self._select_action(current_state, valid_actions_mask)
-
-        # 将动作索引转换为实际卡牌组合
-        if action_idx == 0:  # PASS
-            self.last_action = []
-            return PlayerAction.PASS, []
-        else:
-            # 获取选择的出牌组合
-            played_cards = valid_actions[action_idx]
-            self.last_action = played_cards
-            return PlayerAction.PLAY, played_cards
-
-    def _encode_game_state(self, game_state, player_id, play_system) -> np.ndarray:
-        """将游戏状态编码为DQN输入向量（适应PlaySystem提供的格式）"""
-
-        # 获取当前玩家实体和组件
-        ai_entity = play_system.get_player_entity_by_id(player_id)
-        hand = esper.component_for_entity(ai_entity, Hand)
-        last_played_cards = play_system.get_last_played_cards()
-
-        # 1. 编码玩家手牌（每种牌值的数量）
-        hand_encoding = np.zeros(13)  # 13种不同牌值（3到2）
-
-        # 计算每种牌值的数量
-        for card in hand.cards:
-            # 假设card是直接表示牌值的字符串或对象，需要转换为数值索引
-            value_idx = self._get_value_index(card)
-            if 0 <= value_idx < 13:
-                hand_encoding[value_idx] += 1
-
-        # 2. 编码上一手牌
-        last_played_encoding = np.zeros(13)
-        for card in last_played_cards:
-            value_idx = self._get_value_index(card)
-            if 0 <= value_idx < 13:
-                last_played_encoding[value_idx] += 1
-
-        # ... 其他状态编码
-
-        # 合并所有特征
-        state_vector = np.concatenate(
-            [
-                hand_encoding,
-                last_played_encoding,
-                # ... 其他特征 ...
-            ]
-        )
-
-        return state_vector
-
-    def _get_value_index(self, card):
-        """
-        获取牌值对应的索引（0-12，对应3-2）
-
-        参数:
-            card: 卡牌对象或牌值字符串
-
-        返回:
-            牌值索引
-        """
-        # 如果card是Card对象
-        if hasattr(card, "value"):
-            value = card.value
-        else:
-            # 否则假设card直接是牌值（如'10'、'K'等）
-            value = str(card)
-
-        # 将牌值转换为索引
-        value_map = {
-            "3": 0,
-            "4": 1,
-            "5": 2,
-            "6": 3,
-            "7": 4,
-            "8": 5,
-            "9": 6,
-            "10": 7,
-            "J": 8,
-            "Q": 9,
-            "K": 10,
-            "A": 11,
-            "2": 12,
-        }
-
-        return value_map.get(value, -1)  # 找不到返回-1
-
-    def _get_card_index(self, card) -> int:
-        """
-        获取卡牌的索引
-
-        参数:
-            card: 卡牌对象
-
-        返回:
-            卡牌索引(0-53)
-        """
-        # TODO: 根据您的卡牌实现调整此函数
-        # 示例实现:
-        if card in self.card_to_idx:
-            return self.card_to_idx[card]
-        else:
-            # 如果找不到卡牌索引，返回默认值或引发错误
-            print(f"警告: 无法找到卡牌 {card} 的索引")
-            return 0
-
-    def _select_action(self, state, valid_actions_mask):
-        """
-        选择动作(探索或利用)
-
-        参数:
-            state: 状态向量
-            valid_actions_mask: 有效动作掩码
-
-        返回:
-            选择的动作索引
-        """
-        if not self.is_training:
-            # 测试模式，直接使用最佳动作
-            state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
-            with torch.no_grad():
-                q_values = self.policy_net(state_tensor)
-
-            # 应用动作掩码
-            masked_q_values = q_values.cpu().numpy()[
-                0
-            ] * valid_actions_mask - 9999999 * (1 - valid_actions_mask)
-            return np.argmax(masked_q_values)
-
-        # 训练模式，使用ε-贪婪策略
-        if np.random.random() < self.epsilon:
-            # 探索：从有效动作中随机选择
-            valid_indices = np.where(valid_actions_mask == 1)[0]
-            return np.random.choice(valid_indices)
-        else:
-            # 利用：选择Q值最大的动作
-            state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
-            with torch.no_grad():
-                q_values = self.policy_net(state_tensor)
-
-            # 应用动作掩码
-            masked_q_values = q_values.cpu().numpy()[
-                0
-            ] * valid_actions_mask - 9999999 * (1 - valid_actions_mask)
-            return np.argmax(masked_q_values)
-
-    def _calculate_reward(self, game_state, player_id, play_system) -> float:
-        """
-        计算动作的奖励
-
-        参数:
-            game_state: 游戏状态
-            player_id: 玩家ID
-            play_system: 出牌系统
-
-        返回:
-            奖励值
-        """
-        # TODO: 实现奖励计算逻辑，根据您的游戏规则
-        # 示例奖励方案:
-
-        reward = 0.0
-
-        # 1. 出牌减少手牌奖励
-        if self.last_action:
-            reward += 0.1 * len(self.last_action)  # 每出一张牌给予0.1奖励
-
-        # 2. 出特殊牌型的奖励
-        if self.last_action and len(self.last_action) > 0:
-            # TODO: 检测特殊牌型（如炸弹、顺子等）并给予额外奖励
-            pass
-
-        # 3. 游戏结束奖励
-        if self._is_game_over(game_state):
-            # TODO: 根据游戏结果给予额外奖励/惩罚
-            # 例如:
-            # ai_entity = play_system.get_player_entity_by_id(player_id)
-            # hand = esper.component_for_entity(ai_entity, Hand)
-            # if len(hand.cards) == 0:  # 玩家出完牌
-            #     reward += 10.0  # 获胜大奖励
-            # else:
-            #     reward -= 5.0  # 失败惩罚
-            pass
-
-        return reward
-
-    def _is_game_over(self, game_state) -> bool:
-        """
-        判断游戏是否结束
-
-        参数:
-            game_state: 游戏状态
-
-        返回:
-            游戏是否结束
-        """
-        # TODO: 实现游戏结束判断逻辑
-        # 示例实现:
-        return False  # 请替换为实际游戏结束条件
-
-    def _process_episode_memory(self):
-        """处理一个完整回合的经验记忆"""
-        # 如果没有经验，直接返回
-        if not self.current_episode_memory:
-            return
-
-        # 将所有经验添加到回放缓冲区
-        for experience in self.current_episode_memory:
-            self.memory.add(*experience)
-
-        # 清空当前回合记忆
-        self.current_episode_memory = []
-
-        # 如果缓冲区中的样本不够，暂不训练
-        if len(self.memory) < self.batch_size:
-            return
-
-        # 从经验回放中采样并训练
-        self._train_network()
-
-    def _train_network(self):
-        """训练DQN网络"""
-        # 从经验回放中采样
-        states, actions, rewards, next_states, dones, valid_actions_masks = (
-            self.memory.sample(self.batch_size)
-        )
-
-        # 转移到设备
-        states = states.to(self.device)
-        actions = actions.to(self.device)
-        rewards = rewards.to(self.device)
-        next_states = next_states.to(self.device)
-        dones = dones.to(self.device)
-        valid_actions_masks = valid_actions_masks.to(self.device)
-
-        # 计算当前Q值
-        q_values = self.policy_net(states)
-        q_values_for_actions = q_values.gather(1, actions.unsqueeze(1)).squeeze(1)
-
-        # 计算目标Q值
-        with torch.no_grad():
-            next_q_values = self.target_net(next_states)
-            # 应用有效动作掩码
-            masked_next_q = next_q_values * valid_actions_masks - 9999999 * (
-                1 - valid_actions_masks
-            )
-            max_next_q = masked_next_q.max(1)[0]
-            target_q_values = rewards + (1 - dones) * self.gamma * max_next_q
-
-        # 计算损失
-        loss = nn.MSELoss()(q_values_for_actions, target_q_values)
-
-        # 反向传播和优化
-        self.optimizer.zero_grad()
-        loss.backward()
-        # 梯度裁剪
-        torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), 1.0)
-        self.optimizer.step()
-
-        # 更新计数器和探索率
-        self.train_step += 1
-        self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
-
-        # 定期更新目标网络
-        if self.train_step % self.update_target_every == 0:
-            self.target_net.load_state_dict(self.policy_net.state_dict())
-
-    def start_training(self):
-        """开始训练模式"""
-        self.is_training = True
-        self.train_step = 0
-        self.epsilon = 1.0  # 重置探索率
-
-    def stop_training(self):
-        """停止训练模式"""
-        self.is_training = False
-        self.epsilon = 0.0  # 纯利用模式，不探索
-
-    def save_model(self, path):
-        """保存模型"""
-        if self.policy_net is None:
-            print("警告: 模型未初始化，无法保存")
-            return
-
-        torch.save(self.policy_net.state_dict(), path)
-        print(f"模型已保存到: {path}")
-
-    def load_model(self, path):
-        """加载模型"""
-        if self.policy_net is None:
-            print("警告: 模型未初始化，无法加载")
-            return
-
-        self.policy_net.load_state_dict(torch.load(path, map_location=self.device))
-        self.target_net.load_state_dict(self.policy_net.state_dict())
-        print(f"模型已加载: {path}")
+        print(f"开始评估，共{num_games}局...")
+
+        # 将所有DQN处理器设置为评估模式
+        for handler in self.dqn_handlers.values():
+            handler.set_training_mode(False)
+
+        win_counts = {player_id: 0 for player_id in self.dqn_handlers.keys()}
+        rank_sum = {player_id: 0 for player_id in self.dqn_handlers.keys()}
+
+        for game in range(num_games):
+            # 重置游戏
+            self._reset_game()
+
+            # 运行一局游戏
+            self._run_episode()
+
+            # 记录结果
+            for _, game_state in esper.get_component(GameStateComponent):
+                for i, player_id in enumerate(game_state.rankings):
+                    if player_id in self.dqn_handlers:
+                        rank_sum[player_id] += i + 1
+                        if i == 0:  # 第一名
+                            win_counts[player_id] += 1
+
+            if (game + 1) % 10 == 0:
+                print(f"已评估 {game+1}/{num_games} 局")
+
+        # 输出结果
+        print("\n评估结果:")
+        for player_id in self.dqn_handlers.keys():
+            avg_rank = rank_sum[player_id] / num_games
+            win_rate = win_counts[player_id] / num_games * 100
+            print(f"玩家 {player_id}: 胜率 {win_rate:.2f}%, 平均排名 {avg_rank:.2f}")
+
+        print("评估完成")

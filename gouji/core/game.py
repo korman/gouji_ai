@@ -96,6 +96,18 @@ class GoujiGame:
 
         return True
 
+    def register_handler_for_player(self, player_id, handler):
+        """
+        为单个玩家注册处理器实例
+
+        Args:
+            player_id (int): 玩家ID
+            handler: 处理器实例
+        """
+        self.register_turn_handler(player_id, handler)
+
+        print(f"已为玩家 {player_id} 注册处理器: {handler.__class__.__name__}")
+
     def register_handlers_for_players(
         self, player_ids, handler_class, **handler_kwargs
     ):
@@ -193,8 +205,7 @@ class GoujiGame:
 
                     print("游戏结束！排名情况:")
                     for rank, player_id in enumerate(game_state.rankings):
-                        player_name = self.play_system.get_player_name_by_id(
-                            player_id)
+                        player_name = self.play_system.get_player_name_by_id(player_id)
 
                         # 获取该玩家的PlayerComponent 和 TeamComponent
                         player_component = None
