@@ -110,21 +110,11 @@ class DQNTurnHandler(TurnHandlerInterface):
         # 计算手牌中每个牌值的数量
         hand_rank_counts = np.zeros(self.rank_range)
         for card in hand_cards:
-            rank_index = card.rank.value - 3
+            rank_index = card.rank.get_value() - 3
             hand_rank_counts[rank_index] += 1
 
         # 编码手牌 (前15位) - 每种牌值的数量
         state[: self.rank_range] = hand_rank_counts / self.max_cards_per_rank
-
-        # 计算最后出的牌中每个牌值的数量
-        last_rank_counts = np.zeros(self.rank_range)
-        if last_played_cards:
-            for card in last_played_cards:
-                rank_index = card.rank.value - 3
-                last_rank_counts[rank_index] += 1
-
-        # 编码最后出的牌 (中间15位) - 每种牌值的数量
-        state[self.rank_range: 2 * self.rank_range] = last_rank_counts / 4.0  # 归一化
 
         # 编码其他玩家手牌数量 (最后5位)
         for i, count in enumerate(player_info):
