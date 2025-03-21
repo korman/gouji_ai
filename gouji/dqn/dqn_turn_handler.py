@@ -10,13 +10,14 @@ from ..utils import CardPatternChecker
 from .dqn_network import DQNNetwork
 from collections import deque
 from .replay_buffer import ReplayBuffer
-from ..constants import PLAYER_COUNT
+from ..constants import PLAYER_COUNT, Rank
 from ..interface import PlayerAction
 
 
 class DQNTurnHandler(TurnHandlerInterface):
     """
     基于DQN的AI回合处理器，实现智能AI出牌逻辑和训练
+    针对只考虑牌值（不考虑花色）的卡牌游戏
     """
 
     def __init__(
@@ -50,8 +51,10 @@ class DQNTurnHandler(TurnHandlerInterface):
         self.update_target_every = update_target_every
 
         # 状态空间大小 (手牌编码 + 最后出牌编码 + 其他玩家状态)
-        # 15种牌面 * 4张牌 = 60 (手牌) + 60 (最后出牌) + 5 (其他玩家手牌数量)
-        self.state_size = 125
+        # 计算牌值范围（3-17，3到A再到2，最后是小王和大王）
+        self.rank_range = 15
+        # 手牌编码 + 最后出牌编码 + 其他玩家手牌数量
+        self.state_size = self.rank_range * 2 + 5
 
         # 动作空间大小 (动作ID到实际牌组合的映射)
         self.action_size = 200  # 预估大小，实际上可能更大或更小
@@ -82,9 +85,12 @@ class DQNTurnHandler(TurnHandlerInterface):
         # 游戏历史记录
         self.game_history = []
 
+        # 记录当前轮的奖励
+        self.episode_reward = 0
+
     def encode_state(self, hand_cards, last_played_cards, player_info):
         """
-        将游戏状态编码为神经网络输入向量
+        将游戏状态编码为神经网络输入向量（只考虑牌值）
 
         参数:
             hand_cards: 当前玩家手牌
@@ -96,28 +102,39 @@ class DQNTurnHandler(TurnHandlerInterface):
         """
         state = np.zeros(self.state_size)
 
-        # 编码手牌 (前60位)
+        # 首先计算手牌中每个牌值的数量
+        hand_rank_counts = np.zeros(self.rank_range)
         for card in hand_cards:
-            # 计算卡牌索引 (0-59)
-            card_index = (card.rank.value - 3) * 4 + card.suit.value
-            state[card_index] = 1
+            # 索引为牌值减3（因为最小的牌是3）
+            rank_index = card.rank.value - 3
+            hand_rank_counts[rank_index] += 1
 
-        # 编码最后出的牌 (中间60位)
+        # 编码手牌 (前15位) - 每种牌值的数量
+        state[: self.rank_range] = hand_rank_counts / 4.0  # 归一化，假设最多4张同值牌
+
+        # 计算最后出的牌中每个牌值的数量
+        last_rank_counts = np.zeros(self.rank_range)
         if last_played_cards:
             for card in last_played_cards:
-                card_index = 60 + (card.rank.value - 3) * 4 + card.suit.value
-                state[card_index] = 1
+                rank_index = card.rank.value - 3
+                last_rank_counts[rank_index] += 1
+
+        # 编码最后出的牌 (中间15位) - 每种牌值的数量
+        state[self.rank_range : 2 * self.rank_range] = last_rank_counts / 4.0  # 归一化
 
         # 编码其他玩家手牌数量 (最后5位)
         for i, count in enumerate(player_info):
             if i < 5:  # 只考虑其他5个玩家
-                state[120 + i] = min(count / 20.0, 1.0)  # 归一化
+                state[2 * self.rank_range + i] = min(
+                    count / 20.0, 1.0
+                )  # 归一化，假设最多20张牌
 
         return state
 
     def build_action_mapping(self, hand_cards, last_played_cards):
         """
         构建动作映射，将可能的出牌组合映射到动作ID
+        只考虑牌值，忽略花色
 
         参数:
             hand_cards: 当前手牌
@@ -141,10 +158,8 @@ class DQNTurnHandler(TurnHandlerInterface):
         # 为每个组合分配一个动作ID
         for i, combo in enumerate(beating_combinations):
             self.action_mapping[i + 1] = combo
-            # 使用牌面值的字符串作为哈希键
-            combo_key = "-".join(
-                sorted([f"{c.rank.value}{c.suit.value}" for c in combo])
-            )
+            # 只使用牌值而忽略花色进行哈希
+            combo_key = "-".join(sorted([str(c.rank.value) for c in combo]))
             self.reverse_action_mapping[combo_key] = i + 1
 
         return len(self.action_mapping)
@@ -223,6 +238,8 @@ class DQNTurnHandler(TurnHandlerInterface):
             done: 是否结束
         """
         self.replay_buffer.add(state, action, reward, next_state, done)
+        # 累计本轮奖励
+        self.episode_reward += reward
 
     def handle_player_turn(self, game_state, player_id, play_system):
         """
@@ -272,8 +289,19 @@ class DQNTurnHandler(TurnHandlerInterface):
 
         # 如果是训练模式且有上一状态，记录奖励
         if self.training_mode and self.last_state is not None:
-            # 计算奖励（示例：基于减少的手牌数量）
-            reward = -0.1  # 默认小惩罚以鼓励尽快出牌
+            # 计算奖励
+            reward = -0.01  # 默认小惩罚以鼓励尽快出牌
+
+            # 每出一张牌获得小奖励
+            if len(self.action_mapping.get(self.last_action, [])) > 0:
+                reward += 0.05 * len(self.action_mapping[self.last_action])
+
+            # 打出炸弹获得额外奖励
+            last_cards = self.action_mapping.get(self.last_action, [])
+            if len(last_cards) >= 4 and all(
+                card.rank == last_cards[0].rank for card in last_cards
+            ):
+                reward += 0.5  # 炸弹奖励
 
             # 如果玩家已经出完牌，给予大奖励
             if player_id in game_state.players_without_cards:
@@ -284,7 +312,10 @@ class DQNTurnHandler(TurnHandlerInterface):
                 )
                 if rank_position >= 0:
                     # 排名越高奖励越大
-                    reward = 10.0 * (5 - rank_position)
+                    reward = 10.0 * (PLAYER_COUNT - rank_position)
+                    # 如果是第一名，额外大奖励
+                    if rank_position == 0:
+                        reward += 20.0
 
             # 记录经验
             done = player_id in game_state.players_without_cards
@@ -340,3 +371,9 @@ class DQNTurnHandler(TurnHandlerInterface):
             print("DQN AI已切换到评估模式")
         else:
             print("DQN AI已切换到训练模式")
+
+    def reset_episode(self):
+        """重置回合状态"""
+        self.last_state = None
+        self.last_action = None
+        self.episode_reward = 0
