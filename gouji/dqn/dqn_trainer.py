@@ -89,7 +89,8 @@ class DQNTrainer:
                 # 这里假设DQN处理器内部会记录奖励
                 # 实际实现可能需要额外的奖励计算逻辑
                 total_reward += (
-                    handler.episode_reward if hasattr(handler, "episode_reward") else 0
+                    handler.episode_reward if hasattr(
+                        handler, "episode_reward") else 0
                 )
 
         return total_reward

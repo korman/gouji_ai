@@ -55,7 +55,8 @@ class DealSystem(esper.Processor):
                 game_state.current_player_id = random.randint(0, 5)
 
                 # 找到开始玩家的名称
-                player_name = self.get_player_name_by_id(game_state.current_player_id)
+                player_name = self.get_player_name_by_id(
+                    game_state.current_player_id)
                 print(f"\n发牌完成! {player_name} 开始出牌\n")
 
                 # 如果第一个出牌的不是人类玩家，提示等待
@@ -74,7 +75,8 @@ class DealSystem(esper.Processor):
             human_entity = self.get_player_entity_by_id(human_player_id)
 
             if human_entity is not None:
-                player = esper.component_for_entity(human_entity, PlayerComponent)
+                player = esper.component_for_entity(
+                    human_entity, PlayerComponent)
                 hand = esper.component_for_entity(human_entity, Hand)
 
                 print("\n您的初始手牌:")
