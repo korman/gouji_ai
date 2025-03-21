@@ -330,3 +330,32 @@ class PlaySystem(esper.Processor):
                 f"缺少玩家ID {missing_handlers} 的回合处理器，且未提供默认处理器。"
                 f"请为所有6个玩家提供处理器，或者设置一个默认处理器。"
             )
+
+
+    def get_other_players_card_count(self, player_id):
+        """
+        获取除了指定玩家外的其他玩家手牌数量。
+
+        参数:
+            player_id (int): 要排除的玩家ID
+
+        返回:
+            dict: 字典，键为玩家ID，值为手牌数量
+        """
+        result = {}
+
+        # 遍历所有有PlayerComponent的实体
+        for entity, player in esper.get_component(PlayerComponent):
+            # 只处理不是指定玩家的实体
+            if player.player_id != player_id:
+                # 检查该玩家是否有手牌组件
+                if esper.has_component(entity, Hand):
+                    # 获取手牌组件
+                    hand = esper.component_for_entity(entity, Hand)
+                    # 记录手牌数量
+                    result[player.player_id] = len(hand.cards)
+                else:
+                    # 如果没有手牌组件，记录为0
+                    result[player.player_id] = 0
+
+        return result

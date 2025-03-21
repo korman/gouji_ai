@@ -269,18 +269,7 @@ class DQNTurnHandler(TurnHandlerInterface):
         last_played_cards = play_system.get_last_played_cards()
 
         # 获取其他玩家手牌数量
-        other_players_cards = []
-        for pid in range(PLAYER_COUNT):
-            if pid != player_id:
-                if pid in game_state.players_without_cards:
-                    other_players_cards.append(0)
-                else:
-                    entity = play_system.get_player_entity_by_id(pid)
-                    if entity:
-                        other_hand = esper.component_for_entity(entity, Hand)
-                        other_players_cards.append(len(other_hand.cards))
-                    else:
-                        other_players_cards.append(0)
+        other_players_cards = play_system.get_other_players_card_count(player_id)
 
         # 编码当前状态
         current_state = self.encode_state(
