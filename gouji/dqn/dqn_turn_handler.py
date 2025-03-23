@@ -11,7 +11,7 @@ from ..utils import CardPatternChecker
 from .dqn_network import DQNNetwork
 from collections import deque
 from .replay_buffer import ReplayBuffer
-from ..constants import PLAYER_COUNT, Rank
+from ..constants import PLAYER_COUNT, MAX_HAND_SIZE
 from ..interface import PlayerAction
 
 
@@ -94,6 +94,9 @@ class DQNTurnHandler(TurnHandlerInterface):
         # 记录当前轮的奖励
         self.episode_reward = 0
 
+        # 连续PASS次数
+        self.consecutive_passes = 0
+
     def encode_state(self, hand_cards, last_played_cards, player_info):
         """
         将游戏状态编码为神经网络输入向量（只考虑牌值）
@@ -114,15 +117,21 @@ class DQNTurnHandler(TurnHandlerInterface):
             rank_index = card.rank.get_value() - 3
             hand_rank_counts[rank_index] += 1
 
-        # 编码手牌 (前15位) - 每种牌值的数量
-        state[: self.rank_range] = hand_rank_counts / self.max_cards_per_rank
+        for i in range(self.rank_range - 2):  # 减去大小王的2个索引
+            state[i] = hand_rank_counts[i] / 16.0  # 4副牌×4张=16张普通牌
+
+        # 对大小王（最后2个索引）
+        state[self.rank_range -
+              2] = hand_rank_counts[self.rank_range - 2] / 4.0  # 小王最多4张
+        state[self.rank_range -
+              1] = hand_rank_counts[self.rank_range - 1] / 4.0  # 大王最多4张
 
         # 编码其他玩家手牌数量 (最后5位)
         for i, count in enumerate(player_info):
             if i < 5:  # 只考虑其他5个玩家
                 state[2 * self.rank_range + i] = min(
-                    count / 20.0, 1.0
-                )  # 归一化，假设最多20张牌
+                    count / MAX_HAND_SIZE, 1.0
+                )  # 归一化，假设最多MAX_HAND_SIZE张牌
 
         return state
 
@@ -277,11 +286,11 @@ class DQNTurnHandler(TurnHandlerInterface):
         # 如果是训练模式且有上一状态，记录奖励
         if self.training_mode and self.last_state is not None:
             # 计算奖励
-            reward = -0.01  # 默认小惩罚以鼓励尽快出牌
+            reward = 0.0  # 默认小惩罚以鼓励尽快出牌
 
             # 每出一张牌获得小奖励
             if len(self.action_mapping.get(self.last_action, [])) > 0:
-                reward += 0.05 * len(self.action_mapping[self.last_action])
+                reward += 0.01 * len(self.action_mapping[self.last_action])
 
             # 如果玩家已经出完牌，给予大奖励
             if player_id in game_state.players_without_cards:
