@@ -1,3 +1,4 @@
+import logging
 import torch.optim as optim
 import torch
 import numpy as np
@@ -252,7 +253,7 @@ class DQNTurnHandler(TurnHandlerInterface):
         ai_entity = play_system.get_player_entity_by_id(player_id)
 
         if ai_entity is None:
-            print(f"DQN AI玩家 {player_id} 不存在")
+            logging.error(f"DQN AI玩家 {player_id} 不存在")
             return PlayerAction.PASS, []
 
         player = esper.component_for_entity(ai_entity, PlayerComponent)
@@ -336,7 +337,7 @@ class DQNTurnHandler(TurnHandlerInterface):
             },
             filepath,
         )
-        print(f"模型已保存到: {filepath}")
+        logging.info(f"模型已保存到: {filepath}")
 
     def load_model(self, filepath):
         """从文件加载模型"""
@@ -347,15 +348,15 @@ class DQNTurnHandler(TurnHandlerInterface):
         self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         self.epsilon = checkpoint["epsilon"]
         self.train_counter = checkpoint["train_counter"]
-        print(f"模型已从: {filepath} 加载")
+        logging.info(f"模型已从: {filepath} 加载")
 
     def set_training_mode(self, training=True):
         """设置训练模式"""
         self.training_mode = training
         if not training:
-            print("DQN AI已切换到评估模式")
+            logging.info("DQN AI已切换到评估模式")
         else:
-            print("DQN AI已切换到训练模式")
+            logging.info("DQN AI已切换到训练模式")
 
     def reset_episode(self):
         """重置回合状态"""

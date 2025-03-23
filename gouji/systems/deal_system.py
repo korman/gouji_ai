@@ -1,5 +1,6 @@
 import esper
 import random
+import logging
 from typing import List, Dict
 from ..components.card_components import Card, Hand
 from ..components.game_components import GameStateComponent
@@ -57,11 +58,11 @@ class DealSystem(esper.Processor):
                 # 找到开始玩家的名称
                 player_name = self.get_player_name_by_id(
                     game_state.current_player_id)
-                print(f"\n发牌完成! {player_name} 开始出牌\n")
+                logging.debug(f"\n发牌完成! {player_name} 开始出牌\n")
 
                 # 如果第一个出牌的不是人类玩家，提示等待
                 if game_state.current_player_id != game_state.human_player_id:
-                    print(f"等待 {player_name} 出牌...")
+                    logging.debug(f"等待 {player_name} 出牌...")
 
     def display_human_player_cards(self):
         """
@@ -79,7 +80,7 @@ class DealSystem(esper.Processor):
                     human_entity, PlayerComponent)
                 hand = esper.component_for_entity(human_entity, Hand)
 
-                print("\n您的初始手牌:")
+                logging.debug("\n您的初始手牌:")
                 self.sort_and_display_hand(player, hand)
 
     def sort_and_display_hand(self, player: PlayerComponent, hand: Hand):
@@ -168,14 +169,14 @@ class DealSystem(esper.Processor):
 
         # 确保有6个玩家
         if len(players) != 6:
-            print(f"错误: 需要6个玩家，但找到了{len(players)}个")
+            logging.error(f"错误: 需要6个玩家，但找到了{len(players)}个")
             return
 
         # 计算每个玩家应得的牌数
         total_cards = len(self.deck_system.deck)
         cards_per_player = total_cards // 6  # 应该是36张
 
-        print(f"每位玩家获得 {cards_per_player} 张牌")
+        logging.debug(f"每位玩家获得 {cards_per_player} 张牌")
 
         # 为每个玩家分配牌
         for i, (ent, player, hand) in enumerate(players):
@@ -185,9 +186,9 @@ class DealSystem(esper.Processor):
             # 确保不超出范围
             if end_idx <= len(self.deck_system.deck):
                 hand.cards = self.deck_system.deck[start_idx:end_idx]
-                print(f"{player.name} 获得了 {len(hand.cards)} 张牌")
+                logging.debug(f"{player.name} 获得了 {len(hand.cards)} 张牌")
             else:
-                print(f"警告: 牌不够分配给 {player.name}")
+                logging.warning(f"警告: 牌不够分配给 {player.name}")
 
         # 清空牌组
         self.deck_system.deck = []

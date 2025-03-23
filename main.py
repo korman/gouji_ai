@@ -1,4 +1,5 @@
 import esper
+import logging
 from gouji.core import GoujiGame
 from gouji.core import DefaultAITurnHandler
 from gouji.core import HumanPlayerTurnHandler
@@ -33,6 +34,13 @@ if __name__ == "__main__":
 
     创建GoujiGame实例并使用DQN进行训练。
     """
+
+    logging.basicConfig(
+        level=logging.info,  # 设置日志级别，低于此级别的日志将不显示
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        # filename='logs/debug.log'  # 可选，如果想将日志写入文件
+    )
+
     # 创建游戏实例
     # # 创建DQN处理器 (可以为多个玩家创建不同的DQN处理器)
     # dqn_handler0 = DQNTurnHandler()
@@ -53,7 +61,7 @@ if __name__ == "__main__":
     # trainer.register_dqn_handler(1, dqn_handler1)
 
     # 开始训练
-    print("开始DQN训练...")
+    logging.info("开始DQN训练...")
     trainer.train()
 
     # 训练完成后保存模型
@@ -61,11 +69,11 @@ if __name__ == "__main__":
    # dqn_handler1.save_model("models/dqn_player1_final.pt")
 
     # 评估模型
-    print("开始评估模型...")
-    trainer.evaluate(num_games=100)
+    logging.info("开始评估模型...")
+    trainer.evaluate(num_games=1)
 
     # 可选：使用训练好的DQN模型再玩一局
-    print("\n使用训练好的模型进行一局游戏演示...")
+    logging.info("\n使用训练好的模型进行一局游戏演示...")
     # 设置为评估模式
     # dqn_handler0.set_training_mode(False)
     # dqn_handler1.set_training_mode(False)

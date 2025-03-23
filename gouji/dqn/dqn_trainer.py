@@ -1,4 +1,5 @@
 import esper
+import logging
 from ..components import GameStateComponent
 from ..core import GoujiGame
 from .dqn_turn_handler import DQNTurnHandler
@@ -32,7 +33,7 @@ class DQNTrainer:
 
     def train(self):
         """开始训练流程"""
-        print(f"开始DQN训练，共{self.num_episodes}轮...")
+        logging.info(f"开始DQN训练，共{self.num_episodes}轮...")
 
         for episode in range(self.num_episodes):
             # 重置游戏
@@ -45,7 +46,7 @@ class DQNTrainer:
             # 每100轮输出一次进度
             if (episode + 1) % 100 == 0:
                 avg_reward = sum(self.episode_rewards[-100:]) / 100
-                print(
+                logging.info(
                     f"轮次: {episode+1}/{self.num_episodes}, 平均奖励: {avg_reward:.2f}, 探索率: {list(self.dqn_handlers.values())[0].epsilon:.2f}"
                 )
 
@@ -55,7 +56,7 @@ class DQNTrainer:
                         f"model_checkpoints/dqn_player_{player_id}_ep_{episode+1}.pt"
                     )
 
-        print("训练完成")
+        logging.info("训练完成")
 
     def _reset_game(self):
         """重置游戏状态"""
@@ -97,7 +98,7 @@ class DQNTrainer:
         参数:
             num_games: 评估的游戏局数
         """
-        print(f"开始评估，共{num_games}局...")
+        logging.info(f"开始评估，共{num_games}局...")
 
         # 将所有DQN处理器设置为评估模式
         for handler in self.dqn_handlers.values():
@@ -122,13 +123,14 @@ class DQNTrainer:
                             win_counts[player_id] += 1
 
             if (game + 1) % 10 == 0:
-                print(f"已评估 {game+1}/{num_games} 局")
+                logging.info(f"已评估 {game+1}/{num_games} 局")
 
         # 输出结果
-        print("\n评估结果:")
+        logging.info("\n评估结果:")
         for player_id in self.dqn_handlers.keys():
             avg_rank = rank_sum[player_id] / num_games
             win_rate = win_counts[player_id] / num_games * 100
-            print(f"玩家 {player_id}: 胜率 {win_rate:.2f}%, 平均排名 {avg_rank:.2f}")
+            logging.info(
+                f"玩家 {player_id}: 胜率 {win_rate:.2f}%, 平均排名 {avg_rank:.2f}")
 
-        print("评估完成")
+        logging.info("评估完成")

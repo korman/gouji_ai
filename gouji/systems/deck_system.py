@@ -1,5 +1,6 @@
 import esper
 import random
+import logging
 from typing import List
 from ..components.card_components import Card
 from ..constants import Suit, Rank
@@ -62,7 +63,7 @@ class DeckSystem(esper.Processor):
             self.deck.append(Card(Suit.JOKER, Rank.RED_JOKER, deck_id))
             self.deck.append(Card(Suit.JOKER, Rank.BLACK_JOKER, deck_id))
 
-        print(f"创建了 {len(self.deck)} 张牌")
+        logging.debug(f"创建了 {len(self.deck)} 张牌")
 
     def shuffle_deck(self):
         """

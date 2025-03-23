@@ -1,3 +1,4 @@
+import logging
 import esper
 import random
 import sys
@@ -79,7 +80,7 @@ class PlaySystem(esper.Processor):
                     )
                     last_player_name = self.get_player_name_by_id(
                         last_player_id)
-                    print(f"\n🎮 游戏结束! {last_player_name} 成为最后一名!")
+                    logging.debug(f"\n🎮 游戏结束! {last_player_name} 成为最后一名!")
                     game_state.phase = "game_over"
                     return
 
@@ -92,7 +93,7 @@ class PlaySystem(esper.Processor):
                     handler = self.default_handler
                 else:
                     # 如果没有合适的处理器，记录错误并跳过
-                    print(f"错误: 玩家ID {current_player_id} 没有对应的回合处理器")
+                    logging.error(f"错误: 玩家ID {current_player_id} 没有对应的回合处理器")
                     game_state.current_player_id = self.find_next_player_with_cards(
                         game_state
                     )
@@ -109,16 +110,17 @@ class PlaySystem(esper.Processor):
                 # 处理玩家的出牌动作
                 if action == PlayerAction.PLAY:
                     if not cards:
-                        print(f"错误: 玩家 {current_player_id} 选择出牌，但没有选择牌")
+                        logging.warning(
+                            f"错误: 玩家 {current_player_id} 选择出牌，但没有选择牌")
                         continue
 
                     if self.last_played_cards is None:
                         if not CardPatternChecker.is_valid_pattern(cards):
-                            print("错误: 无效的牌型，请选择其他牌")
+                            logging.warning("错误: 无效的牌型，请选择其他牌")
                             continue
 
                     if not CardPatternChecker.can_beat(cards, self.last_played_cards):
-                        print("错误: 无法打出这些牌，请选择其他牌")
+                        logging.warning("错误: 无法打出这些牌，请选择其他牌")
                         continue
 
                     current_entity = self.get_player_entity_by_id(
@@ -132,14 +134,16 @@ class PlaySystem(esper.Processor):
 
                     # 显示打出的牌
                     ranks = [card.get_rank_display() for card in cards]
-                    print(f"{current_player_name} 打出了: {' '.join(ranks)}")
+                    logging.debug(
+                        f"{current_player_name} 打出了: {' '.join(ranks)}")
 
                     # 输出剩余手牌数量
-                    print(f"{current_player_name} 剩余手牌数量: {len(hand.cards)}")
+                    logging.debug(
+                        f"{current_player_name} 剩余手牌数量: {len(hand.cards)}")
 
                     # 检查是否出完所有牌
                     if not hand.cards:
-                        print(
+                        logging.debug(
                             f"\n🎉 {current_player_name} 出完了所有牌，排名第{len(game_state.rankings) + 1}!"
                         )
                         game_state.players_without_cards.add(current_player_id)
@@ -151,18 +155,19 @@ class PlaySystem(esper.Processor):
                     self.last_effective_player_id = current_player_id
                     self.passed_players.clear()  # 清空过牌玩家列表
                 elif action == PlayerAction.PASS:
-                    print(f"{current_player_name} 选择PASS")
+                    logging.debug(f"{current_player_name} 选择PASS")
                     # 输出剩余手牌数量
                     current_entity = self.get_player_entity_by_id(
                         current_player_id)
                     hand = esper.component_for_entity(current_entity, Hand)
-                    print(f"{current_player_name} 剩余手牌数量: {len(hand.cards)}")
+                    logging.debug(
+                        f"{current_player_name} 剩余手牌数量: {len(hand.cards)}")
 
-                    print(f"当前过牌玩家数量: {len(self.passed_players)}")
-                    print(f"当前可出牌玩家数量: {self.active_players}")
+                    logging.debug(f"当前过牌玩家数量: {len(self.passed_players)}")
+                    logging.debug(f"当前可出牌玩家数量: {self.active_players}")
 
                     if len(self.passed_players) >= self.active_players:
-                        print("所有玩家都选择PASS，重置牌型")
+                        logging.debug("所有玩家都选择PASS，重置牌型")
                         self.last_played_cards = None
                         self.passed_players.clear()
 
@@ -181,7 +186,7 @@ class PlaySystem(esper.Processor):
                 next_player_name = self.get_player_name_by_id(
                     game_state.current_player_id
                 )
-                print(f"\n等待 {next_player_name} 出牌...")
+                logging.debug(f"\n等待 {next_player_name} 出牌...")
 
     def get_player_entity_by_id(self, player_id):
         """
@@ -224,7 +229,7 @@ class PlaySystem(esper.Processor):
             player (PlayerComponent): 玩家组件
             hand (Hand): 手牌组件
         """
-        print(f"\n{player.name} 的手牌:")
+        logging.debug(f"\n{player.name} 的手牌:")
 
         # 对手牌进行排序，按照真实数值从大到小排列
         if not hand.sorted:
@@ -239,8 +244,8 @@ class PlaySystem(esper.Processor):
 
         for i in range(0, len(cards), cards_per_row):
             row_cards = cards[i: i + cards_per_row]
-            print(" ".join(row_cards))
-        print()
+            logging.debug(" ".join(row_cards))
+        logging.debug()
 
     def count_cards_by_rank(self, cards: List[Card]) -> Dict[str, int]:
         """
@@ -304,7 +309,7 @@ class PlaySystem(esper.Processor):
         # 循环查找直到找到一个有牌的玩家
         while next_id in game_state.players_without_cards:
             next_id = (next_id + 1) % 6
-            print(f"跳过玩家 {next_id}，因为他没有牌。")
+            logging.debug(f"跳过玩家 {next_id}，因为他没有牌。")
 
         return next_id
 

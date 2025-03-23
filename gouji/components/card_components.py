@@ -1,3 +1,4 @@
+import logging
 from typing import List
 from ..constants import Suit, Rank
 
@@ -91,16 +92,16 @@ class Hand:
         输出手牌与数量,只显示点数
         """
         if not self.cards:
-            print("手牌为空")
+            logging.debug("手牌为空")
             return
 
-        print("玩家手牌:")
+        logging.debug("玩家手牌:")
         for card in self.cards:
-            print(card.get_rank_display(), end=" ")
-        print()
+            logging.debug(card.get_rank_display(), end=" ")
+        logging.debug()
 
     def show_card_count(self):
         """
         输出手牌数量
         """
-        print(f"剩余手牌数量: {len(self.cards)}")
+        logging.debug(f"剩余手牌数量: {len(self.cards)}")

@@ -1,4 +1,5 @@
 import esper
+import logging
 from ..components import PlayerComponent, Hand, TeamComponent, GameStateComponent
 from ..systems import DeckSystem, DealSystem, PlaySystem
 from ..constants import Team, ScoringRules
@@ -59,7 +60,7 @@ class GoujiGame:
             bool: 注册是否成功
         """
         if not isinstance(handler, TurnHandlerInterface):
-            print(f"错误: 处理器必须实现TurnHandlerInterface接口")
+            logging.error(f"错误: 处理器必须实现TurnHandlerInterface接口")
             return False
 
         # 检查玩家ID是否有效，同时查找PlayerComponent
@@ -73,7 +74,7 @@ class GoujiGame:
                 break
 
         if not player_found or not player_component:
-            print(f"错误: 玩家ID {player_id} 不存在")
+            logging.error(f"错误: 玩家ID {player_id} 不存在")
             return False
 
         # 判断玩家类型（如果未显式指定，则根据处理器类名判断）
@@ -164,10 +165,10 @@ class GoujiGame:
                 missing_handlers.append(component.player_id)
 
         if missing_handlers:
-            print(f"警告: 以下玩家没有注册回合处理器: {missing_handlers}")
+            logging.error(f"警告: 以下玩家没有注册回合处理器: {missing_handlers}")
             response = input("是否继续游戏? (y/n): ")
             if response.lower() != "y":
-                print("游戏已取消")
+                logging.warning("游戏已取消")
                 return
 
         # 输出玩家信息
@@ -190,7 +191,7 @@ class GoujiGame:
             break
 
         if not game_state:
-            print("错误：找不到游戏状态组件")
+            logging.error("错误：找不到游戏状态组件")
             return
 
         while True:
@@ -203,7 +204,7 @@ class GoujiGame:
                     teamA_score = 0
                     teamB_score = 0
 
-                    print("游戏结束！排名情况:")
+                    logging.debug("游戏结束！排名情况:")
                     for rank, player_id in enumerate(game_state.rankings):
                         player_name = self.play_system.get_player_name_by_id(
                             player_id)
@@ -271,7 +272,7 @@ class GoujiGame:
                     break
 
             except KeyboardInterrupt:
-                print("\n游戏被用户中断")
+                logging.warning("\n游戏被用户中断")
                 break
 
-        print("感谢您游玩够级游戏！")
+        logging.info("感谢您游玩够级游戏！")

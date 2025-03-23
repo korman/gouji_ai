@@ -1,4 +1,5 @@
 import esper
+import logging
 import random
 from ..interface import TurnHandlerInterface
 from ..components import PlayerComponent, Hand, TeamComponent, Card
@@ -33,7 +34,7 @@ class DefaultAITurnHandler(TurnHandlerInterface):
         ai_entity = play_system.get_player_entity_by_id(player_id)
 
         if ai_entity is None:
-            print(f"AI玩家 {player_id} 不存在")
+            logging.debug(f"AI玩家 {player_id} 不存在")
             return
 
         player = esper.component_for_entity(ai_entity, PlayerComponent)
@@ -50,9 +51,9 @@ class DefaultAITurnHandler(TurnHandlerInterface):
             if not beating_combinations:
                 # 没有能压过的组合，选择 PASS
                 # 循环输出last_played_cards
-                print("上一手牌:")
+                logging.debug("上一手牌:")
                 for card in last_played_cards:
-                    print(f"{card}")
+                    logging.debug(f"{card}")
 
                 return PlayerAction.PASS, []
 
