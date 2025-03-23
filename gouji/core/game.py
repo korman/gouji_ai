@@ -86,10 +86,10 @@ class GoujiGame:
 
         # 注册处理器
         self.turn_handlers[player_id] = handler
-        print(f"成功为玩家 {player_id} 注册了回合处理器: {handler.__class__.__name__}")
-        print(
-            f"玩家 {player_id} 现在是{'人类' if not player_component.is_ai else 'AI'}玩家"
-        )
+        # print(f"成功为玩家 {player_id} 注册了回合处理器: {handler.__class__.__name__}")
+        # print(
+        #     f"玩家 {player_id} 现在是{'人类' if not player_component.is_ai else 'AI'}玩家"
+        # )
 
         if self.play_system is not None:
             self.play_system.register_turn_handler(player_id, handler)
@@ -106,7 +106,7 @@ class GoujiGame:
         """
         self.register_turn_handler(player_id, handler)
 
-        print(f"已为玩家 {player_id} 注册处理器: {handler.__class__.__name__}")
+    #    print(f"已为玩家 {player_id} 注册处理器: {handler.__class__.__name__}")
 
     def register_handlers_for_players(
         self, player_ids, handler_class, **handler_kwargs
@@ -124,7 +124,7 @@ class GoujiGame:
             handler = handler_class(**handler_kwargs)
             self.register_turn_handler(player_id, handler)
 
-        print(f"已为 {len(player_ids)} 名玩家注册处理器: {handler_class.__name__}")
+      #  print(f"已为 {len(player_ids)} 名玩家注册处理器: {handler_class.__name__}")
 
     def create_players(self):
         """
@@ -171,14 +171,14 @@ class GoujiGame:
                 return
 
         # 输出玩家信息
-        print("\n玩家信息:")
-        for _, component in esper.get_component(PlayerComponent):
-            print(
-                f"玩家{component.player_id+1} ({component.name}): {'AI' if component.is_ai else '人类'}"
-            )
-        print()
+        # print("\n玩家信息:")
+        # for _, component in esper.get_component(PlayerComponent):
+        #     print(
+        #         f"玩家{component.player_id+1} ({component.name}): {'AI' if component.is_ai else '人类'}"
+        #     )
+        # print()
 
-        print("够级游戏开始！")
+        # print("够级游戏开始！")
 
         # 处理发牌
         esper.process()
@@ -221,18 +221,18 @@ class GoujiGame:
                                 player_component = component
                                 if team_component.team == Team.A:
                                     teamA_score += score_change
-                                    print(f"teamA_score: {teamA_score}")
+                                   # print(f"teamA_score: {teamA_score}")
                                 else:
                                     teamB_score += score_change
-                                    print(f"teamB_score: {teamB_score}")
+                                   # print(f"teamB_score: {teamB_score}")
                                 break
 
                         # 更新玩家分数
                         if player_component:
                             player_component.score += score_change
-                            print(
-                                f"第{rank+1}名: {player_name} (分数变化: {'+' if score_change >= 0 else ''}{score_change})"
-                            )
+                            # print(
+                            #     f"第{rank+1}名: {player_name} (分数变化: {'+' if score_change >= 0 else ''}{score_change})"
+                            # )
 
                     # 找出最后一名
                     if len(game_state.rankings) == 5:
@@ -254,19 +254,19 @@ class GoujiGame:
                         last_player_name = self.play_system.get_player_name_by_id(
                             last_player_id
                         )
-                        print(f"最后一名: {last_player_name}")
+                        # print(f"最后一名: {last_player_name}")
 
                     # 根据teamA_score和teamB_score判断胜负
-                    if teamA_score > teamB_score:
-                        print(
-                            f"队伍A获胜！ A队得分: {teamA_score}, B队得分: {teamB_score}"
-                        )
-                    elif teamA_score < teamB_score:
-                        print(
-                            f"队伍B获胜！ A队得分: {teamA_score}, B队得分: {teamB_score}"
-                        )
-                    else:
-                        print(f"平局！ A队得分: {teamA_score}, B队得分: {teamB_score}")
+                    # if teamA_score > teamB_score:
+                    #     print(
+                    #         f"队伍A获胜！ A队得分: {teamA_score}, B队得分: {teamB_score}"
+                    #     )
+                    # elif teamA_score < teamB_score:
+                    #     print(
+                    #         f"队伍B获胜！ A队得分: {teamA_score}, B队得分: {teamB_score}"
+                    #     )
+                    # else:
+                    #     print(f"平局！ A队得分: {teamA_score}, B队得分: {teamB_score}")
 
                     break
 

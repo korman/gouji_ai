@@ -282,13 +282,6 @@ class DQNTurnHandler(TurnHandlerInterface):
             if len(self.action_mapping.get(self.last_action, [])) > 0:
                 reward += 0.05 * len(self.action_mapping[self.last_action])
 
-            # 打出炸弹获得额外奖励
-            last_cards = self.action_mapping.get(self.last_action, [])
-            if len(last_cards) >= 4 and all(
-                card.rank == last_cards[0].rank for card in last_cards
-            ):
-                reward += 0.5  # 炸弹奖励
-
             # 如果玩家已经出完牌，给予大奖励
             if player_id in game_state.players_without_cards:
                 rank_position = (
@@ -322,6 +315,11 @@ class DQNTurnHandler(TurnHandlerInterface):
 
         # 根据选择的动作返回
         if not selected_cards:  # PASS
+            if play_system.get_last_effective_player_id() == player_id:
+                # 如果上一次有效出牌是当前玩家，说明其他玩家都PASS了
+                # 这时候可以随便出牌
+                selected_cards = random.choice(hand.cards)
+
             return PlayerAction.PASS, []
         else:
             return PlayerAction.PLAY, selected_cards

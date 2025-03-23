@@ -1,5 +1,9 @@
 import esper
 from ..components import GameStateComponent
+from ..core import GoujiGame
+from .dqn_turn_handler import DQNTurnHandler
+from ..core import DefaultAITurnHandler
+from ..constants import PLAYER_COUNT
 
 
 class DQNTrainer:
@@ -17,6 +21,10 @@ class DQNTrainer:
         self.num_episodes = num_episodes
         self.dqn_handlers = {}  # 所有DQN处理器
         self.episode_rewards = []  # 每轮奖励
+
+        for player_id in range(1):
+            self.dqn_handlers[player_id] = DQNTurnHandler()
+            self.dqn_handlers[player_id].set_training_mode(True)
 
     def register_dqn_handler(self, player_id, handler):
         """注册DQN处理器"""
@@ -67,31 +75,18 @@ class DQNTrainer:
         运行一轮游戏，返回总奖励
         """
         total_reward = 0
-        game_over = False
 
-        # 将所有DQN处理器设置为训练模式
-        for handler in self.dqn_handlers.values():
-            handler.set_training_mode(True)
+        game = GoujiGame()
 
-        # 循环直到游戏结束
-        while not game_over:
-            # 让游戏系统处理一回合
-            esper.process()  # 使用esper.process()替代self.world.process()
+        # 把self.dqn_handlers中的处理器注册到游戏中
+        # for player_id, handler in self.dqn_handlers.items():
+        #     game.register_handler_for_player(player_id, handler)
 
-            # 检查游戏是否结束
-            for _, game_state in esper.get_component(GameStateComponent):
-                if game_state.phase == "game_over":
-                    game_over = True
-                    break
+        game.register_handler_for_player(0, self.dqn_handlers[0])
+        game.register_handlers_for_players(
+            list(range(1, 6)), DefaultAITurnHandler)
 
-            # 累计奖励
-            for player_id, handler in self.dqn_handlers.items():
-                # 这里假设DQN处理器内部会记录奖励
-                # 实际实现可能需要额外的奖励计算逻辑
-                total_reward += (
-                    handler.episode_reward if hasattr(
-                        handler, "episode_reward") else 0
-                )
+        game.run()
 
         return total_reward
 
