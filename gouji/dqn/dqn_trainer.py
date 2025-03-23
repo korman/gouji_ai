@@ -53,7 +53,7 @@ class DQNTrainer:
                 # 保存检查点
                 for player_id, handler in self.dqn_handlers.items():
                     handler.save_model(
-                        f"model_checkpoints/dqn_player_{player_id}_ep_{episode+1}.pt"
+                        f"models/dqn_player_{player_id}_ep_{episode+1}.pt"
                     )
 
         logging.info("训练完成")
@@ -102,6 +102,7 @@ class DQNTrainer:
 
         # 将所有DQN处理器设置为评估模式
         for handler in self.dqn_handlers.values():
+            handler.load_model("models/dqn_player0_final.pt")
             handler.set_training_mode(False)
 
         win_counts = {player_id: 0 for player_id in self.dqn_handlers.keys()}
@@ -134,3 +135,7 @@ class DQNTrainer:
                 f"玩家 {player_id}: 胜率 {win_rate:.2f}%, 平均排名 {avg_rank:.2f}")
 
         logging.info("评估完成")
+
+    # 获取所有DQN处理器
+    def get_dqn_handlers(self):
+        return self.dqn_handlers

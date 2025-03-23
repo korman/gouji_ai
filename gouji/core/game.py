@@ -275,4 +275,4 @@ class GoujiGame:
                 logging.warning("\n游戏被用户中断")
                 break
 
-        logging.info("感谢您游玩够级游戏！")
+        logging.debug("感谢您游玩够级游戏！")

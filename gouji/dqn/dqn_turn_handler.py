@@ -341,7 +341,7 @@ class DQNTurnHandler(TurnHandlerInterface):
 
     def load_model(self, filepath):
         """从文件加载模型"""
-        checkpoint = torch.load(filepath)
+        checkpoint = torch.load(filepath, weights_only=False)
         self.model.load_state_dict(checkpoint["model_state_dict"])
         self.target_model.load_state_dict(
             checkpoint["target_model_state_dict"])
