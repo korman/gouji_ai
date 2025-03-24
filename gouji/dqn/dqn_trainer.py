@@ -84,8 +84,7 @@ class DQNTrainer:
         #     game.register_handler_for_player(player_id, handler)
 
         game.register_handler_for_player(0, self.dqn_handlers[0])
-        game.register_handlers_for_players(
-            list(range(1, 6)), DefaultAITurnHandler)
+        game.register_handlers_for_players(list(range(1, 6)), DefaultAITurnHandler)
 
         game.run()
 
@@ -132,7 +131,8 @@ class DQNTrainer:
             avg_rank = rank_sum[player_id] / num_games
             win_rate = win_counts[player_id] / num_games * 100
             logging.info(
-                f"玩家 {player_id}: 胜率 {win_rate:.2f}%, 平均排名 {avg_rank:.2f}")
+                f"玩家 {player_id}: 胜率 {win_rate:.2f}%, 平均排名 {avg_rank:.2f}"
+            )
 
         logging.info("评估完成")
 
