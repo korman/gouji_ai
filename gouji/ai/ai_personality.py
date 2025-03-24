@@ -37,7 +37,7 @@ class AIPersonalityConfig:
         """
         if algorithm_type.lower() == "dqn":
             return {
-                "epsilon_decay": 0.995 * self.risk_factor,
+                "epsilon_decay": 0.998 * self.risk_factor,
                 "epsilon_min": 0.01 / self.risk_factor,
             }
         elif algorithm_type.lower() == "ppo":
