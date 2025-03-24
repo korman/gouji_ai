@@ -13,6 +13,7 @@ from collections import deque
 from .replay_buffer import ReplayBuffer
 from gouji.constants import PLAYER_COUNT, MAX_HAND_SIZE
 from gouji.interface import PlayerAction
+from ..ai_personality import AIPersonality
 
 
 class DQNTurnHandler(TurnHandlerInterface):
@@ -23,6 +24,7 @@ class DQNTurnHandler(TurnHandlerInterface):
 
     def __init__(
         self,
+        personality=None,
         learning_rate=0.001,
         gamma=0.99,
         epsilon=1.0,
@@ -43,11 +45,19 @@ class DQNTurnHandler(TurnHandlerInterface):
             batch_size: 批量大小
             update_target_every: 目标网络更新频率
         """
+        # 设置AI性格
+        self.personality = (
+            personality.value if personality else AIPersonality.BALANCED.value
+        )
+        logging.info(f"创建 {self.personality.name} AI")
+
+        dqn_params = self.personality.get_algorithm_params("dqn")
+        self.epsilon_decay = dqn_params.get("epsilon_decay", 0.995)
+        self.epsilon_min = dqn_params.get("epsilon_min", 0.01)
+
         self.learning_rate = learning_rate
         self.gamma = gamma
         self.epsilon = epsilon
-        self.epsilon_decay = epsilon_decay
-        self.epsilon_min = epsilon_min
         self.batch_size = batch_size
         self.update_target_every = update_target_every
 
@@ -286,11 +296,15 @@ class DQNTurnHandler(TurnHandlerInterface):
             # 计算奖励
             reward = 0.0  # 默认小惩罚以鼓励尽快出牌
 
-            reward -= 0.1 * self.consecutive_passes  # 连续PASS惩罚
+            reward -= (
+                self.personality.pass_penalty * self.consecutive_passes
+            )  # 连续PASS惩罚
 
             # 每出一张牌获得小奖励
             if len(self.action_mapping.get(self.last_action, [])) > 0:
-                reward += 0.01 * len(self.action_mapping[self.last_action])
+                reward += self.personality.play_reward_factor * len(
+                    self.action_mapping[self.last_action]
+                )
 
                 # 计算上一次出牌的拆牌代价并扣减相应奖励
                 last_selected_cards = self.action_mapping[self.last_action]
@@ -299,7 +313,7 @@ class DQNTurnHandler(TurnHandlerInterface):
                         last_selected_cards, hand.cards
                     )
                     # 将拆牌代价转化为负奖励，乘以系数控制惩罚力度
-                    reward -= breaking_cost * 0.1
+                    reward -= breaking_cost * self.personality.breaking_cost_factor
 
                     # 记录高代价拆牌情况
                     if breaking_cost > 4.0:
