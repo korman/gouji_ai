@@ -136,3 +136,70 @@ class CardPatternChecker:
                 all_valid_plays.append(cards[:count])
 
         return all_valid_plays
+
+    @staticmethod
+    def calculate_breaking_cost(selected_cards: List[Card], hand: List[Card]) -> float:
+        """
+        计算出牌操作的拆牌代价
+
+        参数:
+            selected_cards: 要出的牌
+            hand: 手中所有的牌
+
+        返回:
+            float: 拆牌代价(0-10)，0表示无拆牌，值越大代表拆牌风险越高
+        """
+        if not selected_cards or len(selected_cards) == 0:
+            return 0.0
+
+        # 获取选中牌的点数值
+        selected_value = selected_cards[0].rank.get_value()
+
+        # 将手牌按点数值分组
+        value_groups = {}
+        for card in hand:
+            card_value = card.rank.get_value()
+            if card_value not in value_groups:
+                value_groups[card_value] = []
+            value_groups[card_value].append(card)
+
+        # 获取该点数值的所有牌
+        same_value_cards = value_groups.get(selected_value, [])
+
+        # 如果出牌数量等于该点数的总数量，则不是拆牌
+        if len(selected_cards) == len(same_value_cards):
+            return 0.0
+
+        # 剩余的牌数
+        remaining_count = len(same_value_cards) - len(selected_cards)
+
+        # 基本代价计算 - 与牌值成反比
+        # 牌值越大，拆牌代价越小（如2的get_value为15，拆牌代价小）
+        # 牌值越小，拆牌代价越大（如3的get_value为3，拆牌代价大）
+        max_value = 17  # 假设最大牌值（如大王）
+        min_value = 3  # 假设最小牌值（如3）
+
+        # 牌值系数: 值越小代价越高，值越大代价越低
+        value_range = max_value - min_value
+        value_factor = 1.0 - min(
+            1.0, max(0.0, (selected_value - min_value) / value_range)
+        )
+
+        # 基础代价: 取决于剩余牌数和牌值
+        base_cost = 0.0
+
+        # 根据剩余牌数计算代价
+        if remaining_count == 1:
+            # 留下单张的代价
+            base_cost = 5.0 * value_factor  # 小牌留单张代价高，大牌留单张代价低
+        elif remaining_count == 2:
+            # 留下两张的代价
+            base_cost = 3.0 * value_factor
+        elif remaining_count == 3:
+            # 留下三张的代价
+            base_cost = 1.5 * value_factor
+        else:
+            # 其他情况的基本代价
+            base_cost = 1.0 * value_factor
+
+        return base_cost
