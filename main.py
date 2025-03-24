@@ -54,7 +54,7 @@ if __name__ == "__main__":
     # game.register_handlers_for_players(list(range(2, 6)), DefaultAITurnHandler)
 
     # 创建DQN训练器
-    trainer = DQNTrainer(num_episodes=400000)
+    trainer = DQNTrainer(num_episodes=10000)
 
     # 开始训练
     logging.info("开始DQN训练...")
@@ -68,7 +68,7 @@ if __name__ == "__main__":
 
     # 评估模型
     logging.info("开始评估模型...")
-    trainer.evaluate(num_games=500)
+    trainer.evaluate(num_games=100)
 
     # 可选：使用训练好的DQN模型再玩一局
     logging.info("\n使用训练好的模型进行一局游戏演示...")
