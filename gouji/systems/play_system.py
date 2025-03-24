@@ -79,6 +79,11 @@ class PlaySystem(esper.Processor):
                     last_player_name = self.get_player_name_by_id(last_player_id)
                     logging.debug(f"\n🎮 游戏结束! {last_player_name} 成为最后一名!")
                     game_state.phase = "game_over"
+
+                    # 循环所有处理器，调用游戏结束回调
+                    for _, handler in self.turn_handlers.items():
+                        handler.on_game_end(game_state, game_state.rankings)
+
                     return
 
                 current_player_id = game_state.current_player_id

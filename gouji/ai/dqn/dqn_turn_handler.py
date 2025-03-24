@@ -146,6 +146,43 @@ class DQNTurnHandler(TurnHandlerInterface):
 
         return state
 
+    # 重写父类方法
+    def on_game_end(self, game_state=None, rankings=None):
+        """
+        游戏结束时的回调方法，用于清理状态或进行学习
+
+        参数:
+            game_state: 可选，游戏结束时的状态组件
+            rankings: 可选，游戏结束时的玩家排名列表
+        """
+        if self.training_mode:
+            # 记录游戏历史
+            self.game_history.append((game_state, rankings))
+
+            # 计算奖励
+            for player_id in game_state.players_without_cards:
+                if player_id == 0:
+                    # 胜利奖励
+                    self.record_experience(
+                        self.last_state,
+                        self.last_action,
+                        10.0,
+                        np.zeros(self.state_size),
+                        True,
+                    )
+                else:
+                    # 失败惩罚
+                    self.record_experience(
+                        self.last_state,
+                        self.last_action,
+                        -10.0,
+                        np.zeros(self.state_size),
+                        True,
+                    )
+
+            # 更新模型
+            self.update_model()
+
     def build_action_mapping(self, hand_cards, last_played_cards):
         """
         构建动作映射，将可能的出牌组合映射到动作ID
@@ -320,29 +357,6 @@ class DQNTurnHandler(TurnHandlerInterface):
                         logging.debug(
                             f"高代价拆牌: {breaking_cost:.2f}, 牌值: {last_selected_cards[0].rank.get_value()}"
                         )
-
-            # 如果玩家已经出完牌，给予大奖励
-            if player_id in game_state.players_without_cards:
-                rank_position = (
-                    game_state.rankings.index(player_id)
-                    if player_id in game_state.rankings
-                    else -1
-                )
-                if rank_position >= 0:
-                    # 排名越高奖励越大
-                    reward = 10.0 * (PLAYER_COUNT - rank_position)
-                    # 如果是第一名，额外大奖励
-                    if rank_position == 0:
-                        reward += 20.0
-
-            # 记录经验
-            done = player_id in game_state.players_without_cards
-            self.record_experience(
-                self.last_state, self.last_action, reward, current_state, done
-            )
-
-            # 更新模型
-            self.update_model()
 
         # 选择动作
         action_id = self.select_action(current_state, valid_actions)

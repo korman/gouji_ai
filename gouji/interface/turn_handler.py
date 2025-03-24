@@ -27,3 +27,15 @@ class TurnHandlerInterface(ABC):
                 - List[Card]: 玩家出的牌列表（如果选择 PASS，则可以为空）
         """
         pass
+
+    def on_game_end(self, game_state=None, rankings=None):
+        """
+        游戏结束时的回调方法，用于清理状态或进行学习
+
+        参数:
+            game_state: 可选，游戏结束时的状态组件
+            rankings: 可选，游戏结束时的玩家排名列表
+
+        这是一个可选实现的方法，有学习需求的AI处理器应覆盖此方法。
+        """
+        pass
