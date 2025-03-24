@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
     # 评估模型
     logging.info("开始评估模型...")
-    trainer.evaluate(num_games=20)
+    trainer.evaluate(num_games=1)
 
     # 可选：使用训练好的DQN模型再玩一局
     logging.info("\n使用训练好的模型进行一局游戏演示...")

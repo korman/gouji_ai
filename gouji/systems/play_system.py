@@ -10,6 +10,7 @@ from ..utils import CardPatternChecker
 from ..interface import TurnHandlerInterface
 from ..interface import PlayerAction
 from ..constants import PLAYER_COUNT
+from .database_system import DatabaseSystem
 
 
 class PlaySystem(esper.Processor):
@@ -69,6 +70,8 @@ class PlaySystem(esper.Processor):
         # 只有在出牌阶段才处理
         for _, game_state in esper.get_component(GameStateComponent):
             if game_state.phase == "playing":
+                db_record = esper.get_processor(DatabaseSystem)
+
                 # 检查游戏结束条件
                 if len(game_state.players_without_cards) == 5:
                     last_player_id = next(
@@ -175,6 +178,8 @@ class PlaySystem(esper.Processor):
                         self.passed_players.clear()
 
                     self.passed_players.add(current_player_id)
+
+                db_record.record_play(current_player_id, current_player_name, cards)
 
                 # 更新下一个玩家
                 game_state.current_player_id = self.find_next_player_with_cards(
