@@ -2,7 +2,7 @@ import esper
 import logging
 import datetime
 import sqlalchemy as sa
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, MetaData
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, MetaData
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -53,7 +53,8 @@ class DatabaseSystem(esper.Processor):
             Column("player_name", String),
             Column("action", String),  # 'PLAY' 或 'PASS'
             Column("cards_played", String),  # 以逗号分隔的卡牌
-            Column("remaining_cards", Integer),  # 剩余手牌数量
+            Column("remaining_cards", Integer),  # 剩余手牌数量（通过current_hand计算）
+            Column("current_hand", Text),  # 当前手牌，以逗号分隔
             Column("timestamp", DateTime, default=datetime.datetime.utcnow),
         )
 
@@ -62,7 +63,7 @@ class DatabaseSystem(esper.Processor):
         self.session = self.Session()
         logging.debug(f"创建新的游戏记录表: {self.current_table_name}")
 
-    def record_play(self, player_id, player_name, cards, remaining_cards):
+    def record_play(self, player_id, player_name, cards, current_hand):
         """
         记录玩家出牌动作。
 
@@ -70,7 +71,7 @@ class DatabaseSystem(esper.Processor):
             player_id (int): 玩家ID
             player_name (str): 玩家名称
             cards (list): 打出的卡牌列表
-            remaining_cards (int): 剩余手牌数量
+            current_hand (list): 出牌后的当前手牌列表
         """
         if self.current_table is None:
             logging.warning("尝试记录出牌但没有活动的游戏表")
@@ -79,6 +80,12 @@ class DatabaseSystem(esper.Processor):
         cards_str = (
             ", ".join([card.get_rank_display() for card in cards]) if cards else ""
         )
+        current_hand_str = (
+            ", ".join([card.get_rank_display() for card in current_hand])
+            if current_hand
+            else ""
+        )
+        remaining_cards = len(current_hand)  # 从当前手牌计算剩余数量
 
         # 添加到待提交列表
         self.pending_records.append(
@@ -88,22 +95,30 @@ class DatabaseSystem(esper.Processor):
                 "action": "PLAY",
                 "cards_played": cards_str,
                 "remaining_cards": remaining_cards,
+                "current_hand": current_hand_str,
                 "timestamp": datetime.datetime.now(),
             }
         )
 
-    def record_pass(self, player_id, player_name, remaining_cards):
+    def record_pass(self, player_id, player_name, current_hand):
         """
         记录玩家PASS动作。
 
         参数:
             player_id (int): 玩家ID
             player_name (str): 玩家名称
-            remaining_cards (int): 剩余手牌数量
+            current_hand (list): 玩家当前手牌列表
         """
         if self.current_table is None:
             logging.warning("尝试记录PASS但没有活动的游戏表")
             return
+
+        current_hand_str = (
+            ", ".join([card.get_rank_display() for card in current_hand])
+            if current_hand
+            else ""
+        )
+        remaining_cards = len(current_hand)  # 从当前手牌计算剩余数量
 
         # 添加到待提交列表
         self.pending_records.append(
@@ -113,6 +128,7 @@ class DatabaseSystem(esper.Processor):
                 "action": "PASS",
                 "cards_played": "",
                 "remaining_cards": remaining_cards,
+                "current_hand": current_hand_str,
                 "timestamp": datetime.datetime.now(),
             }
         )

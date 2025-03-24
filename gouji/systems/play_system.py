@@ -164,7 +164,7 @@ class PlaySystem(esper.Processor):
                     self.passed_players.clear()  # 清空过牌玩家列表
 
                     db_record.record_play(
-                        current_player_id, current_player_name, cards, len(hand.cards)
+                        current_player_id, current_player_name, cards, hand.cards
                     )
                 elif action == PlayerAction.PASS:
                     logging.debug(f"{current_player_name} 选择PASS")
@@ -186,7 +186,7 @@ class PlaySystem(esper.Processor):
                     self.passed_players.add(current_player_id)
 
                     db_record.record_pass(
-                        current_player_id, current_player_name, len(hand.cards)
+                        current_player_id, current_player_name, hand.cards
                     )
 
                 # 更新下一个玩家
