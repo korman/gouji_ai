@@ -1,7 +1,5 @@
 import logging
 import esper
-import random
-import sys
 from typing import List, Dict
 from collections import defaultdict
 from ..components.card_components import Card, Hand

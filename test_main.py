@@ -2,8 +2,8 @@ import esper
 from gouji.core import GoujiGame
 from gouji.core import DefaultAITurnHandler
 from gouji.core import HumanPlayerTurnHandler
-from gouji.dqn import DQNTurnHandler
-from gouji.dqn import DQNTrainer
+from gouji.ai import DQNTurnHandler
+from gouji.ai import DQNTrainer
 from gouji.components import GameStateComponent
 
 if __name__ == "__main__":

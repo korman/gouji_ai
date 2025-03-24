@@ -5,14 +5,14 @@ import numpy as np
 import random
 import esper
 from torch.nn import functional as F
-from ..interface import TurnHandlerInterface
-from ..components import PlayerComponent, Hand, TeamComponent, Card
-from ..utils import CardPatternChecker
+from gouji.interface import TurnHandlerInterface
+from gouji.components import PlayerComponent, Hand, TeamComponent, Card
+from gouji.utils import CardPatternChecker
 from .dqn_network import DQNNetwork
 from collections import deque
 from .replay_buffer import ReplayBuffer
-from ..constants import PLAYER_COUNT, MAX_HAND_SIZE
-from ..interface import PlayerAction
+from gouji.constants import PLAYER_COUNT, MAX_HAND_SIZE
+from gouji.interface import PlayerAction
 
 
 class DQNTurnHandler(TurnHandlerInterface):

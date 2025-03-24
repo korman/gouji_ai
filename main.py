@@ -3,8 +3,8 @@ import logging
 from gouji.core import GoujiGame
 from gouji.core import DefaultAITurnHandler
 from gouji.core import HumanPlayerTurnHandler
-from gouji.dqn import DQNTurnHandler
-from gouji.dqn import DQNTrainer
+from gouji.ai import DQNTurnHandler
+from gouji.ai import DQNTrainer
 from gouji.components import GameStateComponent
 
 # if __name__ == "__main__":
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     # game.register_handlers_for_players(list(range(2, 6)), DefaultAITurnHandler)
 
     # 创建DQN训练器
-    trainer = DQNTrainer(num_episodes=2000)
+    trainer = DQNTrainer(num_episodes=5)
 
     # 注册DQN处理器到训练器
     # trainer.register_dqn_handler(0, dqn_handler0)
@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
     # 评估模型
     logging.info("开始评估模型...")
-    trainer.evaluate(num_games=100)
+    trainer.evaluate(num_games=1)
 
     # 可选：使用训练好的DQN模型再玩一局
     logging.info("\n使用训练好的模型进行一局游戏演示...")

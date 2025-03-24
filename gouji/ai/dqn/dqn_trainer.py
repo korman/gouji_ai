@@ -1,10 +1,10 @@
 import esper
 import logging
-from ..components import GameStateComponent
-from ..core import GoujiGame
+from gouji.components import GameStateComponent
+from gouji.core import GoujiGame
 from .dqn_turn_handler import DQNTurnHandler
-from ..core import DefaultAITurnHandler
-from ..constants import PLAYER_COUNT
+from gouji.core import DefaultAITurnHandler
+from gouji.constants import PLAYER_COUNT
 
 
 class DQNTrainer:
