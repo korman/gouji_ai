@@ -292,6 +292,21 @@ class DQNTurnHandler(TurnHandlerInterface):
             if len(self.action_mapping.get(self.last_action, [])) > 0:
                 reward += 0.01 * len(self.action_mapping[self.last_action])
 
+                # 计算上一次出牌的拆牌代价并扣减相应奖励
+                last_selected_cards = self.action_mapping[self.last_action]
+                if last_selected_cards:  # 确保不是PASS
+                    breaking_cost = CardPatternChecker.calculate_breaking_cost(
+                        last_selected_cards, hand.cards
+                    )
+                    # 将拆牌代价转化为负奖励，乘以系数控制惩罚力度
+                    reward -= breaking_cost * 0.1
+
+                    # 记录高代价拆牌情况
+                    if breaking_cost > 4.0:
+                        logging.debug(
+                            f"高代价拆牌: {breaking_cost:.2f}, 牌值: {last_selected_cards[0].rank.get_value()}"
+                        )
+
             # 如果玩家已经出完牌，给予大奖励
             if player_id in game_state.players_without_cards:
                 rank_position = (
