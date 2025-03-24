@@ -43,7 +43,7 @@ class GoujiGame:
         self.deal_system = DealSystem(self.deck_system)
         self.play_system = PlaySystem()
 
-        sqlite_db = DatabaseSystem("logs/gouji_record.db")
+        sqlite_db = DatabaseSystem()
 
         # 添加处理器
         esper.add_processor(self.deck_system)

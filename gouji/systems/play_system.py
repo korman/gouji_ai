@@ -87,6 +87,8 @@ class PlaySystem(esper.Processor):
                     for _, handler in self.turn_handlers.items():
                         handler.on_game_end(game_state, game_state.rankings)
 
+                    db_record.end_game()
+
                     return
 
                 current_player_id = game_state.current_player_id
@@ -160,6 +162,10 @@ class PlaySystem(esper.Processor):
                     self.last_played_cards = cards
                     self.last_effective_player_id = current_player_id
                     self.passed_players.clear()  # 清空过牌玩家列表
+
+                    db_record.record_play(
+                        current_player_id, current_player_name, cards, len(hand.cards)
+                    )
                 elif action == PlayerAction.PASS:
                     logging.debug(f"{current_player_name} 选择PASS")
                     # 输出剩余手牌数量
@@ -179,7 +185,9 @@ class PlaySystem(esper.Processor):
 
                     self.passed_players.add(current_player_id)
 
-                db_record.record_play(current_player_id, current_player_name, cards)
+                    db_record.record_pass(
+                        current_player_id, current_player_name, len(hand.cards)
+                    )
 
                 # 更新下一个玩家
                 game_state.current_player_id = self.find_next_player_with_cards(

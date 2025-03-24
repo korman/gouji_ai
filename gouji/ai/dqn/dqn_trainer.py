@@ -5,6 +5,7 @@ from gouji.core import GoujiGame
 from .dqn_turn_handler import DQNTurnHandler
 from gouji.core import DefaultAITurnHandler
 from gouji.constants import PLAYER_COUNT
+from gouji.systems import DatabaseSystem
 
 
 class DQNTrainer:
@@ -22,6 +23,8 @@ class DQNTrainer:
         self.num_episodes = num_episodes
         self.dqn_handlers = {}  # 所有DQN处理器
         self.episode_rewards = []  # 每轮奖励
+        self.current_game = 0
+        self.training = False
 
         for player_id in range(1):
             self.dqn_handlers[player_id] = DQNTurnHandler()
@@ -34,6 +37,7 @@ class DQNTrainer:
     def train(self):
         """开始训练流程"""
         logging.info(f"开始DQN训练，共{self.num_episodes}轮...")
+        self.training = True
 
         for episode in range(self.num_episodes):
             # 重置游戏
@@ -55,6 +59,10 @@ class DQNTrainer:
                     handler.save_model(
                         f"models/dqn_player_{player_id}_ep_{episode+1}.pt"
                     )
+
+            self.current_game += 1
+
+        self.current_game = 0
 
         logging.info("训练完成")
 
@@ -79,6 +87,13 @@ class DQNTrainer:
 
         game = GoujiGame()
 
+        db_record_system = esper.get_processor(DatabaseSystem)
+
+        if self.training:
+            db_record_system.start_new_game("training", self.current_game)
+        else:
+            db_record_system.start_new_game("evaluation", self.current_game)
+
         # 把self.dqn_handlers中的处理器注册到游戏中
         # for player_id, handler in self.dqn_handlers.items():
         #     game.register_handler_for_player(player_id, handler)
@@ -98,6 +113,8 @@ class DQNTrainer:
             num_games: 评估的游戏局数
         """
         logging.info(f"开始评估，共{num_games}局...")
+
+        self.training = False
 
         # 将所有DQN处理器设置为评估模式
         for handler in self.dqn_handlers.values():
@@ -124,6 +141,10 @@ class DQNTrainer:
 
             if (game + 1) % 10 == 0:
                 logging.info(f"已评估 {game+1}/{num_games} 局")
+
+            self.current_game += 1
+
+        self.current_game = 0
 
         # 输出结果
         logging.info("\n评估结果:")
