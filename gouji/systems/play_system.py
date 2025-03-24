@@ -129,6 +129,11 @@ class PlaySystem(esper.Processor):
                         if not CardPatternChecker.is_valid_pattern(cards):
                             logging.warning("错误: 无效的牌型，请选择其他牌")
                             continue
+                    else:
+                        if len(self.last_played_cards) != len(cards):
+                            logging.error(
+                                "错误: 出牌数量不匹配，请选择相同数量的牌"
+                            )
 
                     if not CardPatternChecker.can_beat(cards, self.last_played_cards):
                         logging.warning("错误: 无法打出这些牌，请选择其他牌")
@@ -162,14 +167,14 @@ class PlaySystem(esper.Processor):
                         game_state.rankings.append(current_player_id)
                         self.active_players -= 1
 
+                    db_record.record_play(
+                        current_player_id, current_player_name, cards, hand.cards, self.last_effective_player_id, self.last_played_cards
+                    )
+
                     # 更新最后出的牌
                     self.last_played_cards = cards
                     self.last_effective_player_id = current_player_id
                     self.passed_players.clear()  # 清空过牌玩家列表
-
-                    db_record.record_play(
-                        current_player_id, current_player_name, cards, hand.cards
-                    )
                 elif action == PlayerAction.PASS:
                     logging.debug(f"{current_player_name} 选择PASS")
                     # 输出剩余手牌数量
@@ -183,16 +188,16 @@ class PlaySystem(esper.Processor):
                     logging.debug(f"当前过牌玩家数量: {len(self.passed_players)}")
                     logging.debug(f"当前可出牌玩家数量: {self.active_players}")
 
+                    db_record.record_pass(
+                        current_player_id, current_player_name, hand.cards, self.last_effective_player_id, self.last_played_cards
+                    )
+
                     if len(self.passed_players) >= self.active_players:
                         logging.debug("所有玩家都选择PASS，重置牌型")
                         self.last_played_cards = None
                         self.passed_players.clear()
 
                     self.passed_players.add(current_player_id)
-
-                    db_record.record_pass(
-                        current_player_id, current_player_name, hand.cards
-                    )
 
                 # 更新下一个玩家
                 game_state.current_player_id = self.find_next_player_with_cards(

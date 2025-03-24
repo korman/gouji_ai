@@ -54,17 +54,17 @@ if __name__ == "__main__":
     # game.register_handlers_for_players(list(range(2, 6)), DefaultAITurnHandler)
 
     # 创建DQN训练器
-    trainer = DQNTrainer(num_episodes=10000)
+    trainer = DQNTrainer(num_episodes=2000)
 
     # 开始训练
     logging.info("开始DQN训练...")
-    trainer.train()
+    # trainer.train()
 
     # 训练完成后保存模型
 
-    handlers = trainer.get_dqn_handlers()
-    for player_id, handler in handlers.items():
-        handler.save_model(f"models/dqn_player{player_id}_final.pt")
+    # handlers = trainer.get_dqn_handlers()
+    # for player_id, handler in handlers.items():
+    #     handler.save_model(f"models/dqn_player{player_id}_final.pt")
 
     # 评估模型
     logging.info("开始评估模型...")
