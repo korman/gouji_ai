@@ -188,5 +188,8 @@ class DealSystem(esper.Processor):
             else:
                 logging.warning(f"警告: 牌不够分配给 {player.name}")
 
+        for i, (ent, player, hand) in enumerate(players):
+            hand.sort_cards()
+
         # 清空牌组
         self.deck_system.deck = []

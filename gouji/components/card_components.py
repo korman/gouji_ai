@@ -105,3 +105,10 @@ class Hand:
         输出手牌数量
         """
         logging.debug(f"剩余手牌数量: {len(self.cards)}")
+
+    def sort_cards(self):
+        """
+        对手牌进行排序。
+        """
+        self.cards.sort(key=lambda card: card.rank.get_value())
+        self.sorted = True

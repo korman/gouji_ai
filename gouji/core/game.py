@@ -4,6 +4,7 @@ from ..components import PlayerComponent, Hand, TeamComponent, GameStateComponen
 from ..systems import DeckSystem, DealSystem, PlaySystem
 from ..constants import Team, ScoringRules
 from ..interface import TurnHandlerInterface
+from ..systems import DatabaseSystem
 
 
 class GoujiGame:
@@ -42,10 +43,13 @@ class GoujiGame:
         self.deal_system = DealSystem(self.deck_system)
         self.play_system = PlaySystem()
 
+        sqlite_db = DatabaseSystem()
+
         # 添加处理器
         esper.add_processor(self.deck_system)
         esper.add_processor(self.deal_system)
         esper.add_processor(self.play_system)
+        esper.add_processor(sqlite_db)
 
     def register_turn_handler(self, player_id, handler, is_human=None):
         """
@@ -125,7 +129,7 @@ class GoujiGame:
             handler = handler_class(**handler_kwargs)
             self.register_turn_handler(player_id, handler)
 
-      #  print(f"已为 {len(player_ids)} 名玩家注册处理器: {handler_class.__name__}")
+    #  print(f"已为 {len(player_ids)} 名玩家注册处理器: {handler_class.__name__}")
 
     def create_players(self):
         """
@@ -206,8 +210,7 @@ class GoujiGame:
 
                     logging.debug("游戏结束！排名情况:")
                     for rank, player_id in enumerate(game_state.rankings):
-                        player_name = self.play_system.get_player_name_by_id(
-                            player_id)
+                        player_name = self.play_system.get_player_name_by_id(player_id)
 
                         # 获取该玩家的PlayerComponent 和 TeamComponent
                         player_component = None
@@ -222,10 +225,10 @@ class GoujiGame:
                                 player_component = component
                                 if team_component.team == Team.A:
                                     teamA_score += score_change
-                                   # print(f"teamA_score: {teamA_score}")
+                                # print(f"teamA_score: {teamA_score}")
                                 else:
                                     teamB_score += score_change
-                                   # print(f"teamB_score: {teamB_score}")
+                                # print(f"teamB_score: {teamB_score}")
                                 break
 
                         # 更新玩家分数
