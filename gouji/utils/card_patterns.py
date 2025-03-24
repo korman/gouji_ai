@@ -138,6 +138,20 @@ class CardPatternChecker:
         return all_valid_plays
 
     @staticmethod
+    def calculate_armor_reduction(armor, factor=0.06):
+        """
+        计算魔兽争霸3中护甲提供的伤害减免比例
+
+        参数:
+            armor (float): 护甲值
+            factor: 系数，原公式为0.06，降低此值会使曲线更平缓
+
+        返回:
+            float: 伤害减免比例（0-1之间的值，代表减免的百分比）
+        """
+        return armor * factor / (1 + factor * armor)
+
+    @staticmethod
     def calculate_breaking_cost(selected_cards: List[Card], hand: List[Card]) -> float:
         """
         计算出牌操作的拆牌代价

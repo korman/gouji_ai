@@ -61,6 +61,9 @@ class DQNTurnHandler(TurnHandlerInterface):
         self.batch_size = batch_size
         self.update_target_every = update_target_every
 
+        # 已经完成的游戏数量
+        self.game_count = 0
+
         # 状态空间大小 (手牌编码 + 最后出牌编码 + 其他玩家状态)
         # 计算牌值范围（3-17，3到A再到2，最后是小王和大王）
         self.rank_range = 15
@@ -155,6 +158,8 @@ class DQNTurnHandler(TurnHandlerInterface):
             game_state: 可选，游戏结束时的状态组件
             rankings: 可选，游戏结束时的玩家排名列表
         """
+        self.game_count += 1
+
         if self.training_mode:
             # 记录游戏历史
             self.game_history.append((game_state, rankings))
@@ -276,7 +281,11 @@ class DQNTurnHandler(TurnHandlerInterface):
 
         # 衰减探索率
         if self.epsilon > self.epsilon_min:
-            self.epsilon *= self.epsilon_decay
+            self.epsilon = max(
+                1.0
+                - CardPatternChecker.calculate_armor_reduction(self.game_count, 0.01),
+                self.epsilon_min,
+            )
 
     def record_experience(self, state, action, reward, next_state, done):
         """
