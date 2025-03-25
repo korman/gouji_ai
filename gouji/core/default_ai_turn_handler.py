@@ -40,7 +40,7 @@ class DefaultAITurnHandler(TurnHandlerInterface):
         player = esper.component_for_entity(ai_entity, PlayerComponent)
         hand = esper.component_for_entity(ai_entity, Hand)
         team = esper.component_for_entity(ai_entity, TeamComponent)
-        last_played_cards = play_system.get_last_played_cards()
+        last_played_cards = play_system.last_played_cards
 
         if hand:
             # 找出能压过上一手牌的组合

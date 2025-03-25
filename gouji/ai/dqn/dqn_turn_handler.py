@@ -326,7 +326,7 @@ class DQNTurnHandler(TurnHandlerInterface):
         player = esper.component_for_entity(ai_entity, PlayerComponent)
         hand = esper.component_for_entity(ai_entity, Hand)
         team = esper.component_for_entity(ai_entity, TeamComponent)
-        last_played_cards = play_system.get_last_played_cards()
+        last_played_cards = play_system.last_played_cards
 
         # 获取其他玩家手牌数量
         other_players_cards = play_system.get_other_players_card_count(
@@ -382,7 +382,7 @@ class DQNTurnHandler(TurnHandlerInterface):
         # 根据选择的动作返回
         if not selected_cards:  # PASS
             self.consecutive_passes += 1
-            if play_system.get_last_effective_player_id() == player_id:
+            if play_system.last_effective_player_id == player_id:
                 # 如果上一次有效出牌是当前玩家，说明其他玩家都PASS了
                 # 这时候可以随便出牌
                 selected_cards = random.choice(hand.cards)

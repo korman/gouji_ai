@@ -44,7 +44,7 @@ class HumanPlayerTurnHandler(TurnHandlerInterface):
                     # 当前玩家是最后一个有效出牌的玩家时，card_input的内容中没有pass
                     if (
                         game_state.current_player_id
-                        == play_system.get_last_effective_player_id()
+                        == play_system.last_effective_player_id
                     ):
                         card_input = input(
                             "请输入要出的牌 (例如: Q、Q Q、5 5、RJ，或输入 'exit' 退出游戏: "
@@ -155,7 +155,7 @@ class HumanPlayerTurnHandler(TurnHandlerInterface):
                     # 验证出牌是否合法（是否能大过上一手牌）
                     if (
                         hasattr(self, "last_played_cards")
-                        and play_system.get_last_played_cards() is not None
+                        and play_system.last_played_cards is not None
                     ):
                         if not CardPatternChecker.can_beat(
                             current_played_cards, self.last_played_cards

@@ -27,15 +27,16 @@ class PlaySystem(esper.Processor):
 
     def __init__(self):
         # 新增属性，用于跟踪桌面上最后出的牌
-        self.last_played_cards = None
+        self._last_played_cards = None
         self.consecutive_passes = 0
-        self.last_effective_player_id = None
+        self._last_effective_player_id = None
 
         # 新增：用于跟踪当前回合中选择过牌的玩家
         self.passed_players = set()
         self.active_players = PLAYER_COUNT
 
-    def get_last_effective_player_id(self):
+    @property
+    def last_effective_player_id(self):
         """
         获取最后一个进行有效操作的玩家ID。
 
@@ -46,16 +47,17 @@ class PlaySystem(esper.Processor):
             int: 最后一个执行有效操作的玩家ID。如果游戏刚开始或尚无有效操作，
                 则返回初始设置的值。
         """
-        return self.last_effective_player_id
+        return self._last_effective_player_id
 
-    def get_last_played_cards(self):
+    @property
+    def last_played_cards(self):
         """
         获取最后出的牌。
 
         返回:
             List[Card]: 最后出的牌列表
         """
-        return self.last_played_cards
+        return self._last_played_cards
 
     def process(self):
         """
@@ -123,15 +125,15 @@ class PlaySystem(esper.Processor):
                         )
                         continue
 
-                    if self.last_played_cards is None:
+                    if self._last_played_cards is None:
                         if not CardPatternChecker.is_valid_pattern(cards):
                             logging.warning("错误: 无效的牌型，请选择其他牌")
                             continue
                     else:
-                        if len(self.last_played_cards) != len(cards):
+                        if len(self._last_played_cards) != len(cards):
                             logging.error("错误: 出牌数量不匹配，请选择相同数量的牌")
 
-                    if not CardPatternChecker.can_beat(cards, self.last_played_cards):
+                    if not CardPatternChecker.can_beat(cards, self._last_played_cards):
                         logging.warning("错误: 无法打出这些牌，请选择其他牌")
                         continue
 
@@ -166,13 +168,13 @@ class PlaySystem(esper.Processor):
                         current_player_name,
                         cards,
                         hand.cards,
-                        self.last_effective_player_id,
-                        self.last_played_cards,
+                        self._last_effective_player_id,
+                        self._last_played_cards,
                     )
 
                     # 更新最后出的牌
-                    self.last_played_cards = cards
-                    self.last_effective_player_id = current_player_id
+                    self._last_played_cards = cards
+                    self._last_effective_player_id = current_player_id
                     self.passed_players.clear()  # 清空过牌玩家列表
                 elif action == PlayerAction.PASS:
                     logging.debug(f"{current_player_name} 选择PASS")
@@ -190,13 +192,13 @@ class PlaySystem(esper.Processor):
                         current_player_id,
                         current_player_name,
                         hand.cards,
-                        self.last_effective_player_id,
-                        self.last_played_cards,
+                        self._last_effective_player_id,
+                        self._last_played_cards,
                     )
 
                     if len(self.passed_players) >= self.active_players:
                         logging.debug("所有玩家都选择PASS，重置牌型")
-                        self.last_played_cards = None
+                        self._last_played_cards = None
                         self.passed_players.clear()
 
                     self.passed_players.add(current_player_id)
@@ -207,8 +209,8 @@ class PlaySystem(esper.Processor):
                 )
 
                 # 如果下一个玩家是最后一个有效出牌的玩家，重置牌型
-                if game_state.current_player_id == self.last_effective_player_id:
-                    self.last_played_cards = None
+                if game_state.current_player_id == self._last_effective_player_id:
+                    self._last_played_cards = None
 
                 # 提示等待下一个玩家
                 next_player_name = self.get_player_name_by_id(
