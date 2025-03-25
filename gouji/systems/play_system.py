@@ -28,12 +28,12 @@ class PlaySystem(esper.Processor):
     def __init__(self):
         # 新增属性，用于跟踪桌面上最后出的牌
         self._last_played_cards = None
-        self.consecutive_passes = 0
+        self._consecutive_passes = 0
         self._last_effective_player_id = None
 
         # 新增：用于跟踪当前回合中选择过牌的玩家
-        self.passed_players = set()
-        self.active_players = PLAYER_COUNT
+        self._passed_players = set()
+        self._active_players = PLAYER_COUNT
 
     @property
     def last_effective_player_id(self):
@@ -75,11 +75,11 @@ class PlaySystem(esper.Processor):
                 db_record = esper.get_processor(DatabaseSystem)
 
                 # 检查游戏结束条件
-                if len(game_state.players_without_cards) == 5:
+                if len(game_state._players_without_cards) == 5:
                     last_player_id = next(
                         id
                         for id in range(6)
-                        if id not in game_state.players_without_cards
+                        if id not in game_state._players_without_cards
                     )
                     last_player_name = self.get_player_name_by_id(last_player_id)
                     logging.debug(f"\n🎮 游戏结束! {last_player_name} 成为最后一名!")
@@ -93,7 +93,7 @@ class PlaySystem(esper.Processor):
 
                     return
 
-                current_player_id = game_state.current_player_id
+                current_player_id = game_state._current_player_id
 
                 # 查找对应的处理器
                 if current_player_id in self.turn_handlers:
@@ -105,7 +105,7 @@ class PlaySystem(esper.Processor):
                     logging.error(
                         f"错误: 玩家ID {current_player_id} 没有对应的回合处理器"
                     )
-                    game_state.current_player_id = self.find_next_player_with_cards(
+                    game_state._current_player_id = self.find_next_player_with_cards(
                         game_state
                     )
                     continue
@@ -159,9 +159,9 @@ class PlaySystem(esper.Processor):
                         logging.debug(
                             f"\n🎉 {current_player_name} 出完了所有牌，排名第{len(game_state.rankings) + 1}!"
                         )
-                        game_state.players_without_cards.add(current_player_id)
+                        game_state._players_without_cards.add(current_player_id)
                         game_state.rankings.append(current_player_id)
-                        self.active_players -= 1
+                        self._active_players -= 1
 
                     db_record.record_play(
                         current_player_id,
@@ -175,7 +175,7 @@ class PlaySystem(esper.Processor):
                     # 更新最后出的牌
                     self._last_played_cards = cards
                     self._last_effective_player_id = current_player_id
-                    self.passed_players.clear()  # 清空过牌玩家列表
+                    self._passed_players.clear()  # 清空过牌玩家列表
                 elif action == PlayerAction.PASS:
                     logging.debug(f"{current_player_name} 选择PASS")
                     # 输出剩余手牌数量
@@ -185,8 +185,8 @@ class PlaySystem(esper.Processor):
                         f"{current_player_name} 剩余手牌数量: {len(hand.cards)}"
                     )
 
-                    logging.debug(f"当前过牌玩家数量: {len(self.passed_players)}")
-                    logging.debug(f"当前可出牌玩家数量: {self.active_players}")
+                    logging.debug(f"当前过牌玩家数量: {len(self._passed_players)}")
+                    logging.debug(f"当前可出牌玩家数量: {self._active_players}")
 
                     db_record.record_pass(
                         current_player_id,
@@ -196,25 +196,25 @@ class PlaySystem(esper.Processor):
                         self._last_played_cards,
                     )
 
-                    if len(self.passed_players) >= self.active_players:
+                    if len(self._passed_players) >= self._active_players:
                         logging.debug("所有玩家都选择PASS，重置牌型")
                         self._last_played_cards = None
-                        self.passed_players.clear()
+                        self._passed_players.clear()
 
-                    self.passed_players.add(current_player_id)
+                    self._passed_players.add(current_player_id)
 
                 # 更新下一个玩家
-                game_state.current_player_id = self.find_next_player_with_cards(
+                game_state._current_player_id = self.find_next_player_with_cards(
                     game_state
                 )
 
                 # 如果下一个玩家是最后一个有效出牌的玩家，重置牌型
-                if game_state.current_player_id == self._last_effective_player_id:
+                if game_state._current_player_id == self._last_effective_player_id:
                     self._last_played_cards = None
 
                 # 提示等待下一个玩家
                 next_player_name = self.get_player_name_by_id(
-                    game_state.current_player_id
+                    game_state._current_player_id
                 )
                 logging.debug(f"\n等待 {next_player_name} 出牌...")
 

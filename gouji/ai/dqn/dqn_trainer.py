@@ -71,8 +71,8 @@ class DQNTrainer:
         # 获取游戏状态组件并重置
         for _, game_state in esper.get_component(GameStateComponent):
             game_state.phase = "dealing"
-            game_state.current_player_id = 0
-            game_state.players_without_cards.clear()
+            game_state._current_player_id = 0
+            game_state._players_without_cards.clear()
             game_state.rankings.clear()
 
         # 重新发牌
