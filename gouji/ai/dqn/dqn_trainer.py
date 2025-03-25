@@ -85,7 +85,12 @@ class DQNTrainer:
         """
         total_reward = 0
 
-        game = GoujiGame()
+        game = None
+
+        if self.training:
+            game = GoujiGame("training_" + str(self.current_game))
+        else:
+            game = GoujiGame("evaluation_" + str(self.current_game))
 
         db_record_system = esper.get_processor(DatabaseSystem)
 

@@ -38,6 +38,12 @@ class PlaySystem(esper.Processor):
         # 新增当前回合数
         self._round_number = 0
 
+    def __del__(self):
+        """
+        析构函数，清空回合处理器字典。
+        """
+        self.turn_handlers.clear()
+
     @property
     def last_effective_player_id(self):
         """

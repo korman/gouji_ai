@@ -20,13 +20,21 @@ class GoujiGame:
     使用esper作为ECS框架来管理实体、组件和系统。
     """
 
-    def __init__(self):
+    def __init__(self, world_name: str = "default"):
         """
         初始化游戏环境和组件。
         玩家类型(AI或人类)将根据注册的回合处理器类型决定。
         """
-        # 重置esper世界状态（防止重复运行时的问题）
-        esper.clear_database()
+
+        # 保存世界名称
+        self._world_name = world_name
+
+        # 创建世界
+        esper.switch_world(self._world_name)
+
+        for world in esper.list_worlds():
+            if world != self._world_name:
+                esper.delete_world(world)
 
         # 创建游戏状态
         game_state_entity = esper.create_entity()
@@ -210,7 +218,8 @@ class GoujiGame:
 
                     logging.debug("游戏结束！排名情况:")
                     for rank, player_id in enumerate(game_state.rankings):
-                        player_name = self._play_system.get_player_name_by_id(player_id)
+                        player_name = self._play_system.get_player_name_by_id(
+                            player_id)
 
                         # 获取该玩家的PlayerComponent 和 TeamComponent
                         player_component = None
