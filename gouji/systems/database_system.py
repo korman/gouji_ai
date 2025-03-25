@@ -48,7 +48,7 @@ class DatabaseSystem(esper.Processor):
         self.current_table = sa.Table(
             self.current_table_name,
             self.metadata,
-            Column("id", Integer, primary_key=True, autoincrement=True),
+            Column("id", Integer, primary_key=True),  # 不使用autoincrement
             Column("player_id", Integer),
             Column("player_name", String),
             Column("action", String),  # 'PLAY' 或 'PASS'
@@ -67,6 +67,7 @@ class DatabaseSystem(esper.Processor):
 
     def record_play(
         self,
+        round_number,  # 新增：回合数作为ID
         player_id,
         player_name,
         cards,
@@ -78,6 +79,7 @@ class DatabaseSystem(esper.Processor):
         记录玩家出牌动作。
 
         参数:
+            round_number (int): 当前回合数，用作记录ID
             player_id (int): 玩家ID
             player_name (str): 玩家名称
             cards (list): 打出的卡牌列表
@@ -107,9 +109,18 @@ class DatabaseSystem(esper.Processor):
 
         remaining_cards = len(current_hand)  # 从当前手牌计算剩余数量
 
-        # 添加到待提交列表
+        # 添加日志输出
+        log_message = f"回合{round_number} 玩家出牌: ID={player_id}, 名称='{player_name}', 打出=[{cards_str}], 剩余牌数={remaining_cards}"
+        if last_player_id:
+            log_message += (
+                f", 接上家ID={last_player_id}, 上家牌=[{last_played_cards_str}]"
+            )
+        logging.info(log_message)
+
+        # 添加到待提交列表，使用回合数作为ID
         self.pending_records.append(
             {
+                "id": round_number,  # 使用回合数作为ID
                 "player_id": player_id,
                 "player_name": player_name,
                 "action": "PLAY",
@@ -124,6 +135,7 @@ class DatabaseSystem(esper.Processor):
 
     def record_pass(
         self,
+        round_number,  # 新增：回合数作为ID
         player_id,
         player_name,
         current_hand,
@@ -134,6 +146,7 @@ class DatabaseSystem(esper.Processor):
         记录玩家PASS动作。
 
         参数:
+            round_number (int): 当前回合数，用作记录ID
             player_id (int): 玩家ID
             player_name (str): 玩家名称
             current_hand (list): 玩家当前手牌列表
@@ -159,9 +172,18 @@ class DatabaseSystem(esper.Processor):
 
         remaining_cards = len(current_hand)  # 从当前手牌计算剩余数量
 
-        # 添加到待提交列表
+        # 添加日志输出
+        log_message = f"回合{round_number} 玩家PASS: ID={player_id}, 名称='{player_name}', 剩余牌数={remaining_cards}"
+        if last_player_id:
+            log_message += (
+                f", 接上家ID={last_player_id}, 上家牌=[{last_played_cards_str}]"
+            )
+        logging.info(log_message)
+
+        # 添加到待提交列表，使用回合数作为ID
         self.pending_records.append(
             {
+                "id": round_number,  # 使用回合数作为ID
                 "player_id": player_id,
                 "player_name": player_name,
                 "action": "PASS",

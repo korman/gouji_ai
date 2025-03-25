@@ -217,3 +217,27 @@ class CardPatternChecker:
             base_cost = 1.0 * value_factor
 
         return base_cost
+
+    @staticmethod
+    def cards_to_pattern_string(cards: List[Card]) -> str:
+        """
+        将一组扑克牌转换为牌型字符串表示
+
+        参数:
+            cards: 要转换的扑克牌列表
+
+        返回:
+            str: 牌型的字符串表示，如[3 3 4 4]
+        """
+        if not cards:
+            return "[]"
+
+        # 提取每张牌的点数显示值
+        ranks = [card.get_rank_display() for card in cards]
+
+        # 对牌进行排序(可选，如果需要)
+        # 这里可能需要自定义排序逻辑，因为显示值可能是字符串
+
+        # 构建字符串表示
+        ranks_str = " ".join(ranks)
+        return f"[{ranks_str}]"

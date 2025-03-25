@@ -36,9 +36,9 @@ if __name__ == "__main__":
     """
 
     logging.basicConfig(
-        level=logging.INFO,  # 设置日志级别，低于此级别的日志将不显示
+        level=logging.DEBUG,  # 设置日志级别，低于此级别的日志将不显示
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        filename="logs/debug.log",  # 可选，如果想将日志写入文件
+       # filename="logs/debug.log",  # 可选，如果想将日志写入文件
     )
 
     # 创建游戏实例
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     # game.register_handlers_for_players(list(range(2, 6)), DefaultAITurnHandler)
 
     # 创建DQN训练器
-    trainer = DQNTrainer(num_episodes=10)
+    trainer = DQNTrainer(num_episodes=2)
 
     # 开始训练
     logging.info("开始DQN训练...")
@@ -68,7 +68,7 @@ if __name__ == "__main__":
 
     # 评估模型
     logging.info("开始评估模型...")
-    trainer.evaluate(num_games=5)
+    trainer.evaluate(num_games=1)
 
     # 可选：使用训练好的DQN模型再玩一局
     logging.info("\n使用训练好的模型进行一局游戏演示...")

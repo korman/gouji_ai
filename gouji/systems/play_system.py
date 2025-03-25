@@ -35,6 +35,9 @@ class PlaySystem(esper.Processor):
         self._passed_players = set()
         self._active_players = PLAYER_COUNT
 
+        # 新增当前回合数
+        self._round_number = 0
+
     @property
     def last_effective_player_id(self):
         """
@@ -72,6 +75,7 @@ class PlaySystem(esper.Processor):
         # 只有在出牌阶段才处理
         for _, game_state in esper.get_component(GameStateComponent):
             if game_state.phase == "playing":
+                self._round_number += 1
                 db_record = esper.get_processor(DatabaseSystem)
 
                 # 检查游戏结束条件
@@ -91,6 +95,7 @@ class PlaySystem(esper.Processor):
 
                     db_record.end_game()
 
+                    self._round_number = 0  # 重置回合数
                     return
 
                 current_player_id = game_state.current_player_id
@@ -164,6 +169,7 @@ class PlaySystem(esper.Processor):
                         self._active_players -= 1
 
                     db_record.record_play(
+                        self._round_number,
                         current_player_id,
                         current_player_name,
                         cards,
@@ -174,6 +180,10 @@ class PlaySystem(esper.Processor):
 
                     # 更新最后出的牌
                     self._last_played_cards = cards
+
+                    # 更新最后有效出牌的玩家ID
+                    logging.info("这里赋值最后出牌：" + CardPatternChecker.cards_to_pattern_string(cards))
+
                     self._last_effective_player_id = current_player_id
                     self._passed_players.clear()  # 清空过牌玩家列表
                 elif action == PlayerAction.PASS:
@@ -189,6 +199,7 @@ class PlaySystem(esper.Processor):
                     logging.debug(f"当前可出牌玩家数量: {self._active_players}")
 
                     db_record.record_pass(
+                        self._round_number,
                         current_player_id,
                         current_player_name,
                         hand.cards,
