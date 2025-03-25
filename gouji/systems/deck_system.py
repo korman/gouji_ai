@@ -25,8 +25,8 @@ class DeckSystem(esper.Processor):
 
         创建一个空牌组并将初始化状态设置为False。
         """
-        self.deck: List[Card] = []
-        self.initialized = False
+        self._deck: List[Card] = []
+        self._initialized = False
 
     def process(self):
         """
@@ -35,10 +35,10 @@ class DeckSystem(esper.Processor):
         如果牌组尚未初始化，则创建牌组并洗牌，然后将初始化状态设置为True。
         这确保牌组仅被初始化一次。
         """
-        if not self.initialized:
+        if not self._initialized:
             self.create_deck()
             self.shuffle_deck()
-            self.initialized = True
+            self._initialized = True
 
     def create_deck(self):
         """
@@ -57,13 +57,13 @@ class DeckSystem(esper.Processor):
                 for rank in [
                     r for r in Rank if r != Rank.RED_JOKER and r != Rank.BLACK_JOKER
                 ]:
-                    self.deck.append(Card(suit, rank, deck_id))
+                    self._deck.append(Card(suit, rank, deck_id))
 
             # 添加大小王
-            self.deck.append(Card(Suit.JOKER, Rank.RED_JOKER, deck_id))
-            self.deck.append(Card(Suit.JOKER, Rank.BLACK_JOKER, deck_id))
+            self._deck.append(Card(Suit.JOKER, Rank.RED_JOKER, deck_id))
+            self._deck.append(Card(Suit.JOKER, Rank.BLACK_JOKER, deck_id))
 
-        logging.debug(f"创建了 {len(self.deck)} 张牌")
+        logging.debug(f"创建了 {len(self._deck)} 张牌")
 
     def shuffle_deck(self):
         """
@@ -71,4 +71,24 @@ class DeckSystem(esper.Processor):
 
         使用Python的random.shuffle函数打乱deck列表中牌的顺序。
         """
-        random.shuffle(self.deck)
+        random.shuffle(self._deck)
+
+    @property
+    def deck(self) -> List[Card]:
+        """
+        获取当前牌组的副本。
+
+        返回:
+            List[Card]: 牌组的副本
+        """
+        return self._deck.copy()
+
+    @deck.setter
+    def deck(self, new_deck: List[Card]):
+        """
+        设置新的牌组。
+
+        参数:
+            new_deck (List[Card]): 新的牌组
+        """
+        self._deck = new_deck

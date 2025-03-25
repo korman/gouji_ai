@@ -192,10 +192,6 @@ class PlaySystem(esper.Processor):
                     # 更新最后出的牌
                     self._last_played_cards = cards
 
-                    # 更新最后有效出牌的玩家ID
-                    logging.info(
-                        "这里赋值最后出牌：" + CardPatternChecker.cards_to_pattern_string(cards))
-
                     self._last_effective_player_id = current_player_id
                     self._passed_players.clear()  # 清空过牌玩家列表
                 elif action == PlayerAction.PASS:

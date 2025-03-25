@@ -52,6 +52,7 @@ class GoujiGame:
         self._play_system = PlaySystem()
 
         sqlite_db = DatabaseSystem()
+        sqlite_db.record_training = False
 
         # 添加处理器
         esper.add_processor(self._deck_system)

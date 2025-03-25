@@ -29,8 +29,8 @@ class DealSystem(esper.Processor):
         参数:
             deck_system (DeckSystem): 牌组系统实例，提供要发放的牌组
         """
-        self.deck_system = deck_system
-        self.dealt = False
+        self._deck_system = deck_system
+        self._dealt = False
 
     def process(self):
         """
@@ -43,9 +43,9 @@ class DealSystem(esper.Processor):
         4. 显示相应的游戏状态信息
         """
         # 只在第一次运行时发牌
-        if not self.dealt:
+        if not self._dealt:
             self.deal_all_cards()
-            self.dealt = True
+            self._dealt = True
 
             # 发牌完成后，先展示人类玩家的手牌
             self.display_human_player_cards()
@@ -173,7 +173,7 @@ class DealSystem(esper.Processor):
             return
 
         # 计算每个玩家应得的牌数
-        total_cards = len(self.deck_system.deck)
+        total_cards = len(self._deck_system.deck)
         cards_per_player = total_cards // 6  # 应该是36张
 
         logging.debug(f"每位玩家获得 {cards_per_player} 张牌")
@@ -184,8 +184,8 @@ class DealSystem(esper.Processor):
             end_idx = start_idx + cards_per_player
 
             # 确保不超出范围
-            if end_idx <= len(self.deck_system.deck):
-                hand.cards = self.deck_system.deck[start_idx:end_idx]
+            if end_idx <= len(self._deck_system.deck):
+                hand.cards = self._deck_system.deck[start_idx:end_idx]
                 logging.debug(f"{player.name} 获得了 {len(hand.cards)} 张牌")
             else:
                 logging.warning(f"警告: 牌不够分配给 {player.name}")
@@ -194,4 +194,4 @@ class DealSystem(esper.Processor):
             hand.sort_cards()
 
         # 清空牌组
-        self.deck_system.deck = []
+        self._deck_system.deck = []
