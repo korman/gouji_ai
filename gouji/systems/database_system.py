@@ -65,7 +65,15 @@ class DatabaseSystem(esper.Processor):
         self.session = self.Session()
         logging.debug(f"创建新的游戏记录表: {self.current_table_name}")
 
-    def record_play(self, player_id, player_name, cards, current_hand, last_player_id=None, last_played_cards=None):
+    def record_play(
+        self,
+        player_id,
+        player_name,
+        cards,
+        current_hand,
+        last_player_id=None,
+        last_played_cards=None,
+    ):
         """
         记录玩家出牌动作。
 
@@ -82,8 +90,7 @@ class DatabaseSystem(esper.Processor):
             return
 
         cards_str = (
-            ", ".join([card.get_rank_display()
-                       for card in cards]) if cards else ""
+            ", ".join([card.get_rank_display() for card in cards]) if cards else ""
         )
         current_hand_str = (
             ", ".join([card.get_rank_display() for card in current_hand])
@@ -95,7 +102,8 @@ class DatabaseSystem(esper.Processor):
         last_played_cards_str = ""
         if last_played_cards:
             last_played_cards_str = ", ".join(
-                [card.get_rank_display() for card in last_played_cards])
+                [card.get_rank_display() for card in last_played_cards]
+            )
 
         remaining_cards = len(current_hand)  # 从当前手牌计算剩余数量
 
@@ -114,7 +122,14 @@ class DatabaseSystem(esper.Processor):
             }
         )
 
-    def record_pass(self, player_id, player_name, current_hand, last_player_id=None, last_played_cards=None):
+    def record_pass(
+        self,
+        player_id,
+        player_name,
+        current_hand,
+        last_player_id=None,
+        last_played_cards=None,
+    ):
         """
         记录玩家PASS动作。
 
@@ -139,7 +154,8 @@ class DatabaseSystem(esper.Processor):
         last_played_cards_str = ""
         if last_played_cards:
             last_played_cards_str = ", ".join(
-                [card.get_rank_display() for card in last_played_cards])
+                [card.get_rank_display() for card in last_played_cards]
+            )
 
         remaining_cards = len(current_hand)  # 从当前手牌计算剩余数量
 
@@ -169,8 +185,7 @@ class DatabaseSystem(esper.Processor):
 
         try:
             # 批量插入所有待处理记录
-            self.session.execute(
-                self.current_table.insert(), self.pending_records)
+            self.session.execute(self.current_table.insert(), self.pending_records)
             self.session.commit()
             self.pending_records.clear()
         except Exception as e:

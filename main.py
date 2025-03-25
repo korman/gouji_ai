@@ -58,13 +58,13 @@ if __name__ == "__main__":
 
     # 开始训练
     logging.info("开始DQN训练...")
-    # trainer.train()
+    trainer.train()
 
     # 训练完成后保存模型
 
-    # handlers = trainer.get_dqn_handlers()
-    # for player_id, handler in handlers.items():
-    #     handler.save_model(f"models/dqn_player{player_id}_final.pt")
+    handlers = trainer.get_dqn_handlers()
+    for player_id, handler in handlers.items():
+        handler.save_model(f"models/dqn_player{player_id}_final.pt")
 
     # 评估模型
     logging.info("开始评估模型...")
