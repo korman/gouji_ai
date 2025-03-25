@@ -38,7 +38,7 @@ if __name__ == "__main__":
     logging.basicConfig(
         level=logging.DEBUG,  # 设置日志级别，低于此级别的日志将不显示
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-       # filename="logs/debug.log",  # 可选，如果想将日志写入文件
+        # filename="logs/debug.log",  # 可选，如果想将日志写入文件
     )
 
     # 创建游戏实例

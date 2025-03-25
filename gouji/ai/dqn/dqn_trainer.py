@@ -99,7 +99,8 @@ class DQNTrainer:
         #     game.register_handler_for_player(player_id, handler)
 
         game.register_handler_for_player(0, self.dqn_handlers[0])
-        game.register_handlers_for_players(list(range(1, 6)), DefaultAITurnHandler)
+        game.register_handlers_for_players(
+            list(range(1, 6)), DefaultAITurnHandler)
 
         game.run()
 
