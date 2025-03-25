@@ -93,7 +93,7 @@ class PlaySystem(esper.Processor):
 
                     return
 
-                current_player_id = game_state._current_player_id
+                current_player_id = game_state.current_player_id
 
                 # 查找对应的处理器
                 if current_player_id in self.turn_handlers:
@@ -105,7 +105,7 @@ class PlaySystem(esper.Processor):
                     logging.error(
                         f"错误: 玩家ID {current_player_id} 没有对应的回合处理器"
                     )
-                    game_state._current_player_id = self.find_next_player_with_cards(
+                    game_state.current_player_id = self.find_next_player_with_cards(
                         game_state
                     )
                     continue
@@ -204,17 +204,17 @@ class PlaySystem(esper.Processor):
                     self._passed_players.add(current_player_id)
 
                 # 更新下一个玩家
-                game_state._current_player_id = self.find_next_player_with_cards(
+                game_state.current_player_id = self.find_next_player_with_cards(
                     game_state
                 )
 
                 # 如果下一个玩家是最后一个有效出牌的玩家，重置牌型
-                if game_state._current_player_id == self._last_effective_player_id:
+                if game_state.current_player_id == self._last_effective_player_id:
                     self._last_played_cards = None
 
                 # 提示等待下一个玩家
                 next_player_name = self.get_player_name_by_id(
-                    game_state._current_player_id
+                    game_state.current_player_id
                 )
                 logging.debug(f"\n等待 {next_player_name} 出牌...")
 

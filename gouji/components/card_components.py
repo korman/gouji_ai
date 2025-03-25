@@ -28,9 +28,9 @@ class Card:
             rank (Rank): 牌的点数
             deck_id (int): 所属牌组的ID
         """
-        self.suit = suit
-        self.rank = rank
-        self.deck_id = deck_id
+        self._suit = suit
+        self._rank = rank
+        self._deck_id = deck_id
 
     def __str__(self):
         """
@@ -41,9 +41,9 @@ class Card:
         返回:
             str: 牌的字符串表示，例如"♥A"或"大王"
         """
-        if self.rank in [Rank.RED_JOKER, Rank.BLACK_JOKER]:
-            return self.rank.value
-        return f"{self.suit.value}{self.rank.value}"
+        if self._rank in [Rank.RED_JOKER, Rank.BLACK_JOKER]:
+            return self._rank.value
+        return f"{self.suit.value}{self._rank.value}"
 
     def get_rank_display(self):
         """
@@ -52,21 +52,29 @@ class Card:
         返回:
             str: 便于显示的牌面值表示
         """
-        if self.rank == Rank.RED_JOKER:
+        if self._rank == Rank.RED_JOKER:
             return "RJ"  # 改为"RJ"代替"大王"
-        elif self.rank == Rank.BLACK_JOKER:
+        elif self._rank == Rank.BLACK_JOKER:
             return "BJ"  # 改为"BJ"代替"小王"
-        elif self.rank == Rank.ACE:
+        elif self._rank == Rank.ACE:
             return "A"
-        elif self.rank == Rank.JACK:
+        elif self._rank == Rank.JACK:
             return "J"
-        elif self.rank == Rank.QUEEN:
+        elif self._rank == Rank.QUEEN:
             return "Q"
-        elif self.rank == Rank.KING:
+        elif self._rank == Rank.KING:
             return "K"
         else:
             # 对于数字牌，直接返回数值的字符串
-            return str(self.rank.value)
+            return str(self._rank.value)
+
+    @property
+    def suit(self):
+        return self._suit
+
+    @property
+    def rank(self):
+        return self._rank
 
 
 class Hand:
@@ -84,19 +92,19 @@ class Hand:
         """
         初始化一个空的手牌。
         """
-        self.cards: List[Card] = []
-        self.sorted: bool = False  # 添加标记表示是否已排序
+        self._cards: List[Card] = []
+        self._sorted: bool = False  # 添加标记表示是否已排序
 
     def show_hands(self):
         """
         输出手牌与数量,只显示点数
         """
-        if not self.cards:
+        if not self._cards:
             logging.debug("手牌为空")
             return
 
         logging.debug("玩家手牌:")
-        for card in self.cards:
+        for card in self._cards:
             logging.debug(card.get_rank_display(), end=" ")
         logging.debug()
 
@@ -110,5 +118,17 @@ class Hand:
         """
         对手牌进行排序。
         """
-        self.cards.sort(key=lambda card: card.rank.get_value())
-        self.sorted = True
+        self._cards.sort(key=lambda card: card._rank.get_value())
+        self._sorted = True
+
+    @property
+    def cards(self):
+        return self._cards
+
+    @cards.setter
+    def cards(self, cards: List[Card]):
+        self._cards = cards
+
+    @property
+    def sorted(self):
+        return self._sorted

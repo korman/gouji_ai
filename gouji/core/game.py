@@ -33,22 +33,22 @@ class GoujiGame:
         esper.add_component(game_state_entity, GameStateComponent())
 
         # 初始化回合处理器字典
-        self.turn_handlers = {}
+        self._turn_handlers = {}
 
         # 创建游戏玩家（初始默认全部为AI）
-        self.create_players()
+        self._create_players()
 
         # 初始化游戏系统
-        self.deck_system = DeckSystem()
-        self.deal_system = DealSystem(self.deck_system)
-        self.play_system = PlaySystem()
+        self._deck_system = DeckSystem()
+        self._deal_system = DealSystem(self._deck_system)
+        self._play_system = PlaySystem()
 
         sqlite_db = DatabaseSystem()
 
         # 添加处理器
-        esper.add_processor(self.deck_system)
-        esper.add_processor(self.deal_system)
-        esper.add_processor(self.play_system)
+        esper.add_processor(self._deck_system)
+        esper.add_processor(self._deal_system)
+        esper.add_processor(self._play_system)
         esper.add_processor(sqlite_db)
 
     def register_turn_handler(self, player_id, handler, is_human=None):
@@ -90,14 +90,14 @@ class GoujiGame:
         player_component.is_ai = not is_human
 
         # 注册处理器
-        self.turn_handlers[player_id] = handler
+        self._turn_handlers[player_id] = handler
         # print(f"成功为玩家 {player_id} 注册了回合处理器: {handler.__class__.__name__}")
         # print(
         #     f"玩家 {player_id} 现在是{'人类' if not player_component.is_ai else 'AI'}玩家"
         # )
 
-        if self.play_system is not None:
-            self.play_system.register_turn_handler(player_id, handler)
+        if self._play_system is not None:
+            self._play_system.register_turn_handler(player_id, handler)
 
         return True
 
@@ -131,7 +131,7 @@ class GoujiGame:
 
     #  print(f"已为 {len(player_ids)} 名玩家注册处理器: {handler_class.__name__}")
 
-    def create_players(self):
+    def _create_players(self):
         """
         创建游戏中的玩家实体。
         所有玩家初始设置为AI玩家，具体类型将根据注册的处理器决定
@@ -165,7 +165,7 @@ class GoujiGame:
         # 检查每个玩家是否都有回合处理器
         missing_handlers = []
         for _, component in esper.get_component(PlayerComponent):
-            if component.player_id not in self.turn_handlers:
+            if component.player_id not in self._turn_handlers:
                 missing_handlers.append(component.player_id)
 
         if missing_handlers:
@@ -210,7 +210,7 @@ class GoujiGame:
 
                     logging.debug("游戏结束！排名情况:")
                     for rank, player_id in enumerate(game_state.rankings):
-                        player_name = self.play_system.get_player_name_by_id(player_id)
+                        player_name = self._play_system.get_player_name_by_id(player_id)
 
                         # 获取该玩家的PlayerComponent 和 TeamComponent
                         player_component = None
@@ -255,7 +255,7 @@ class GoujiGame:
                                     teamB_score -= 2
                                 break
 
-                        last_player_name = self.play_system.get_player_name_by_id(
+                        last_player_name = self._play_system.get_player_name_by_id(
                             last_player_id
                         )
                         # print(f"最后一名: {last_player_name}")

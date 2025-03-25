@@ -52,12 +52,12 @@ class CardPatternChecker:
             return False
 
         # 检查新牌是否都是同一点数
-        new_ranks = [card.rank for card in new_cards]
+        new_ranks = [card._rank for card in new_cards]
         if not all(rank == new_ranks[0] for rank in new_ranks):
             return False
 
         # 检查前一手牌是否都是同一点数
-        prev_ranks = [card.rank for card in previous_cards]
+        prev_ranks = [card._rank for card in previous_cards]
         if not all(rank == prev_ranks[0] for rank in prev_ranks):
             return False
 
@@ -88,9 +88,9 @@ class CardPatternChecker:
         # 将手牌按点数分组
         rank_groups = {}
         for card in hand_cards:
-            if card.rank not in rank_groups:
-                rank_groups[card.rank] = []
-            rank_groups[card.rank].append(card)
+            if card._rank not in rank_groups:
+                rank_groups[card._rank] = []
+            rank_groups[card._rank].append(card)
 
         beating_combinations = []
 
@@ -124,9 +124,9 @@ class CardPatternChecker:
         # 将手牌按点数分组
         rank_groups = {}
         for card in hand_cards:
-            if card.rank not in rank_groups:
-                rank_groups[card.rank] = []
-            rank_groups[card.rank].append(card)
+            if card._rank not in rank_groups:
+                rank_groups[card._rank] = []
+            rank_groups[card._rank].append(card)
 
         all_valid_plays = []
 
@@ -167,12 +167,12 @@ class CardPatternChecker:
             return 0.0
 
         # 获取选中牌的点数值
-        selected_value = selected_cards[0].rank.get_value()
+        selected_value = selected_cards[0]._rank.get_value()
 
         # 将手牌按点数值分组
         value_groups = {}
         for card in hand:
-            card_value = card.rank.get_value()
+            card_value = card._rank.get_value()
             if card_value not in value_groups:
                 value_groups[card_value] = []
             value_groups[card_value].append(card)
