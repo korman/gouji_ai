@@ -46,20 +46,20 @@ class DQNTurnHandler(TurnHandlerInterface):
             update_target_every: 目标网络更新频率
         """
         # 设置AI性格
-        self.personality = (
+        self._personality = (
             personality.value if personality else AIPersonality.BALANCED.value
         )
-        logging.info(f"创建 {self.personality.name} AI")
+        logging.info(f"创建 {self._personality.name} AI")
 
-        dqn_params = self.personality.get_algorithm_params("dqn")
-        self.epsilon_decay = dqn_params.get("epsilon_decay", 0.995)
-        self.epsilon_min = dqn_params.get("epsilon_min", 0.01)
+        dqn_params = self._personality.get_algorithm_params("dqn")
+        self._epsilon_decay = dqn_params.get("epsilon_decay", 0.995)
+        self._epsilon_min = dqn_params.get("epsilon_min", 0.01)
 
         self._learning_rate = learning_rate
-        self.gamma = gamma
-        self.epsilon = epsilon
-        self.batch_size = batch_size
-        self.update_target_every = update_target_every
+        self._gamma = gamma
+        self._epsilon = epsilon
+        self._batch_size = batch_size
+        self._update_target_every = update_target_every
 
         # 已经完成的游戏数量
         self._game_count = 0
@@ -69,37 +69,37 @@ class DQNTurnHandler(TurnHandlerInterface):
         self._rank_range = 15
 
         # 调整归一化因子，最多可能有16张同值牌(4副牌×4张)
-        self.max_cards_per_rank = 16
+        self._max_cards_per_rank = 16
 
         # 手牌编码 + 最后出牌编码 + 其他玩家手牌数量
-        self.state_size = self._rank_range * 2 + 5
+        self._state_size = self._rank_range * 2 + 5
 
         # 动作空间大小 (动作ID到实际牌组合的映射)
-        self.action_size = 500  # 从200增加到500
-        self.action_mapping = {}  # 动作ID -> 牌组合
-        self.reverse_action_mapping = {}  # 牌组合的哈希 -> 动作ID
+        self._action_size = 500  # 从200增加到500
+        self._action_mapping = {}  # 动作ID -> 牌组合
+        self._reverse_action_mapping = {}  # 牌组合的哈希 -> 动作ID
 
         # 创建模型
-        self.model = DQNNetwork(self.state_size, self.action_size)
-        self.target_model = DQNNetwork(self.state_size, self.action_size)
-        self.target_model.load_state_dict(self.model.state_dict())
+        self._model = DQNNetwork(self._state_size, self._action_size)
+        self._target_model = DQNNetwork(self._state_size, self._action_size)
+        self._target_model.load_state_dict(self._model.state_dict())
 
         # 优化器
-        self.optimizer = optim.Adam(
-            self.model.parameters(), lr=self._learning_rate)
+        self._optimizer = optim.Adam(
+            self._model.parameters(), lr=self._learning_rate)
 
         # 经验回放
-        self.replay_buffer = ReplayBuffer(capacity=20000)
+        self._replay_buffer = ReplayBuffer(capacity=20000)
 
         # 训练计数器
-        self.train_counter = 0
+        self._train_counter = 0
 
         # 最近的状态和动作
-        self.last_state = None
-        self.last_action = None
+        self._last_state = None
+        self._last_action = None
 
         # 训练模式标志
-        self.training_mode = True
+        self._training_mode = True
 
         # 游戏历史记录
         self._game_history = []
@@ -108,7 +108,7 @@ class DQNTurnHandler(TurnHandlerInterface):
         self._episode_reward = 0
 
         # 连续PASS次数
-        self.consecutive_passes = 0
+        self._consecutive_passes = 0
 
     def encode_state(self, hand_cards, last_played_cards, player_info):
         """
@@ -122,7 +122,7 @@ class DQNTurnHandler(TurnHandlerInterface):
         返回:
             numpy数组: 状态向量
         """
-        state = np.zeros(self.state_size)
+        state = np.zeros(self._state_size)
 
         # 计算手牌中每个牌值的数量
         hand_rank_counts = np.zeros(self._rank_range)
@@ -161,7 +161,7 @@ class DQNTurnHandler(TurnHandlerInterface):
         """
         self._game_count += 1
 
-        if self.training_mode:
+        if self._training_mode:
             # 记录游戏历史
             self._game_history.append((game_state, rankings))
 
@@ -170,19 +170,19 @@ class DQNTurnHandler(TurnHandlerInterface):
                 if player_id == 0:
                     # 胜利奖励
                     self.record_experience(
-                        self.last_state,
-                        self.last_action,
+                        self._last_state,
+                        self._last_action,
                         10.0,
-                        np.zeros(self.state_size),
+                        np.zeros(self._state_size),
                         True,
                     )
                 else:
                     # 失败惩罚
                     self.record_experience(
-                        self.last_state,
-                        self.last_action,
+                        self._last_state,
+                        self._last_action,
                         -10.0,
-                        np.zeros(self.state_size),
+                        np.zeros(self._state_size),
                         True,
                     )
 
@@ -201,12 +201,12 @@ class DQNTurnHandler(TurnHandlerInterface):
         返回:
             int: 有效动作的数量
         """
-        self.action_mapping = {}
-        self.reverse_action_mapping = {}
+        self._action_mapping = {}
+        self._reverse_action_mapping = {}
 
         # 添加PASS选项
-        self.action_mapping[0] = []
-        self.reverse_action_mapping["pass"] = 0
+        self._action_mapping[0] = []
+        self._reverse_action_mapping["pass"] = 0
 
         # 获取所有可能的出牌组合
         beating_combinations = CardPatternChecker.find_all_beating_combinations(
@@ -215,12 +215,12 @@ class DQNTurnHandler(TurnHandlerInterface):
 
         # 为每个组合分配一个动作ID
         for i, combo in enumerate(beating_combinations):
-            self.action_mapping[i + 1] = combo
+            self._action_mapping[i + 1] = combo
             # 只使用牌值而忽略花色进行哈希
             combo_key = "-".join(sorted([str(c.rank.value) for c in combo]))
-            self.reverse_action_mapping[combo_key] = i + 1
+            self._reverse_action_mapping[combo_key] = i + 1
 
-        return len(self.action_mapping)
+        return len(self._action_mapping)
 
     def select_action(self, state, valid_actions):
         """
@@ -233,13 +233,13 @@ class DQNTurnHandler(TurnHandlerInterface):
         返回:
             int: 选择的动作ID
         """
-        if self.training_mode and random.random() < self.epsilon:
+        if self._training_mode and random.random() < self._epsilon:
             # 探索: 随机选择一个有效动作
             return random.randint(0, valid_actions - 1)
         else:
             # 利用: 选择Q值最高的动作
             state_tensor = torch.FloatTensor(state).unsqueeze(0)
-            q_values = self.model(state_tensor).detach().numpy()[0]
+            q_values = self._model(state_tensor).detach().numpy()[0]
 
             # 只考虑有效动作
             valid_q_values = q_values[:valid_actions]
@@ -247,12 +247,12 @@ class DQNTurnHandler(TurnHandlerInterface):
 
     def update_model(self):
         """训练DQN模型"""
-        if len(self.replay_buffer) < self.batch_size:
+        if len(self._replay_buffer) < self._batch_size:
             return
 
         # 从经验回放中采样
-        states, actions, rewards, next_states, dones = self.replay_buffer.sample(
-            self.batch_size
+        states, actions, rewards, next_states, dones = self._replay_buffer.sample(
+            self._batch_size
         )
 
         # 转换为张量
@@ -263,30 +263,30 @@ class DQNTurnHandler(TurnHandlerInterface):
         dones = torch.FloatTensor(dones)
 
         # 计算当前Q值
-        current_q = self.model(states).gather(
+        current_q = self._model(states).gather(
             1, actions.unsqueeze(1)).squeeze(1)
 
         # 计算目标Q值
-        next_q = self.target_model(next_states).detach().max(1)[0]
-        target_q = rewards + (1 - dones) * self.gamma * next_q
+        next_q = self._target_model(next_states).detach().max(1)[0]
+        target_q = rewards + (1 - dones) * self._gamma * next_q
 
         # 计算损失并更新模型
         loss = F.mse_loss(current_q, target_q)
-        self.optimizer.zero_grad()
+        self._optimizer.zero_grad()
         loss.backward()
-        self.optimizer.step()
+        self._optimizer.step()
 
         # 更新目标网络
-        self.train_counter += 1
-        if self.train_counter % self.update_target_every == 0:
-            self.target_model.load_state_dict(self.model.state_dict())
+        self._train_counter += 1
+        if self._train_counter % self._update_target_every == 0:
+            self._target_model.load_state_dict(self._model.state_dict())
 
         # 衰减探索率
-        if self.epsilon > self.epsilon_min:
-            self.epsilon = max(
+        if self._epsilon > self._epsilon_min:
+            self._epsilon = max(
                 1.0
                 - CardPatternChecker.calculate_armor_reduction(self._game_count, 0.01),
-                self.epsilon_min,
+                self._epsilon_min,
             )
 
     def record_experience(self, state, action, reward, next_state, done):
@@ -300,7 +300,7 @@ class DQNTurnHandler(TurnHandlerInterface):
             next_state: 下一个状态
             done: 是否结束
         """
-        self.replay_buffer.add(state, action, reward, next_state, done)
+        self._replay_buffer.add(state, action, reward, next_state, done)
         # 累计本轮奖励
         self._episode_reward += reward
 
@@ -342,36 +342,36 @@ class DQNTurnHandler(TurnHandlerInterface):
             hand.cards, last_played_cards)
 
         # 如果是训练模式且有上一状态，记录奖励
-        if self.training_mode and self.last_state is not None:
+        if self._training_mode and self._last_state is not None:
             # 计算奖励
             reward = 0.0  # 默认小惩罚以鼓励尽快出牌
 
             reward -= (
-                self.personality.pass_penalty * self.consecutive_passes
+                self._personality.pass_penalty * self._consecutive_passes
             )  # 连续PASS惩罚
 
             # 每出一张牌获得小奖励
-            if len(self.action_mapping.get(self.last_action, [])) > 0:
-                reward += self.personality.play_reward_factor * len(
-                    self.action_mapping[self.last_action]
+            if len(self._action_mapping.get(self._last_action, [])) > 0:
+                reward += self._personality.play_reward_factor * len(
+                    self._action_mapping[self._last_action]
                 )
 
                 if last_played_cards is not None:
                     diff_with_last_play = CardPatternChecker.get_value_difference(
-                        self.action_mapping[self.last_action], last_played_cards
+                        self._action_mapping[self._last_action], last_played_cards
                     )
 
-                    if diff_with_last_play > len(self.action_mapping[self.last_action]):
-                        reward -= self.personality.difference_penalty * diff_with_last_play
+                    if diff_with_last_play > len(self._action_mapping[self._last_action]):
+                        reward -= self._personality.difference_penalty * diff_with_last_play
 
                 # 计算上一次出牌的拆牌代价并扣减相应奖励
-                last_selected_cards = self.action_mapping[self.last_action]
+                last_selected_cards = self._action_mapping[self._last_action]
                 if last_selected_cards:  # 确保不是PASS
                     breaking_cost = CardPatternChecker.calculate_breaking_cost(
                         last_selected_cards, hand.cards
                     )
                     # 将拆牌代价转化为负奖励，乘以系数控制惩罚力度
-                    reward -= breaking_cost * self.personality.breaking_cost_factor
+                    reward -= breaking_cost * self._personality.breaking_cost_factor
 
                     # 记录高代价拆牌情况
                     if breaking_cost > 4.0:
@@ -381,35 +381,35 @@ class DQNTurnHandler(TurnHandlerInterface):
 
         # 选择动作
         action_id = self.select_action(current_state, valid_actions)
-        selected_cards = self.action_mapping[action_id]
+        selected_cards = self._action_mapping[action_id]
 
         # 记录当前状态和动作，以便下一回合使用
-        self.last_state = current_state
-        self.last_action = action_id
+        self._last_state = current_state
+        self._last_action = action_id
 
         # 根据选择的动作返回
         if not selected_cards:  # PASS
-            self.consecutive_passes += 1
+            self._consecutive_passes += 1
             if play_system.last_effective_player_id == player_id:
                 # 如果上一次有效出牌是当前玩家，说明其他玩家都PASS了
                 # 这时候可以随便出牌
                 selected_cards = random.choice(hand.cards)
-                self.consecutive_passes = 0
+                self._consecutive_passes = 0
 
             return PlayerAction.PASS, []
         else:
-            self.consecutive_passes = 0
+            self._consecutive_passes = 0
             return PlayerAction.PLAY, selected_cards
 
     def save_model(self, filepath):
         """保存模型到文件"""
         torch.save(
             {
-                "model_state_dict": self.model.state_dict(),
-                "target_model_state_dict": self.target_model.state_dict(),
-                "optimizer_state_dict": self.optimizer.state_dict(),
-                "epsilon": self.epsilon,
-                "train_counter": self.train_counter,
+                "model_state_dict": self._model.state_dict(),
+                "target_model_state_dict": self._target_model.state_dict(),
+                "optimizer_state_dict": self._optimizer.state_dict(),
+                "epsilon": self._epsilon,
+                "train_counter": self._train_counter,
             },
             filepath,
         )
@@ -418,17 +418,17 @@ class DQNTurnHandler(TurnHandlerInterface):
     def load_model(self, filepath):
         """从文件加载模型"""
         checkpoint = torch.load(filepath, weights_only=False)
-        self.model.load_state_dict(checkpoint["model_state_dict"])
-        self.target_model.load_state_dict(
+        self._model.load_state_dict(checkpoint["model_state_dict"])
+        self._target_model.load_state_dict(
             checkpoint["target_model_state_dict"])
-        self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        self.epsilon = checkpoint["epsilon"]
-        self.train_counter = checkpoint["train_counter"]
+        self._optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        self._epsilon = checkpoint["epsilon"]
+        self._train_counter = checkpoint["train_counter"]
         logging.info(f"模型已从: {filepath} 加载")
 
     def set_training_mode(self, training=True):
         """设置训练模式"""
-        self.training_mode = training
+        self._training_mode = training
         if not training:
             logging.info("DQN AI已切换到评估模式")
         else:
@@ -436,8 +436,8 @@ class DQNTurnHandler(TurnHandlerInterface):
 
     def reset_episode(self):
         """重置回合状态"""
-        self.last_state = None
-        self.last_action = None
+        self._last_state = None
+        self._last_action = None
         self._episode_reward = 0
 
     @property
