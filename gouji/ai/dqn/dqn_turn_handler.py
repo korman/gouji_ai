@@ -55,24 +55,24 @@ class DQNTurnHandler(TurnHandlerInterface):
         self.epsilon_decay = dqn_params.get("epsilon_decay", 0.995)
         self.epsilon_min = dqn_params.get("epsilon_min", 0.01)
 
-        self.learning_rate = learning_rate
+        self._learning_rate = learning_rate
         self.gamma = gamma
         self.epsilon = epsilon
         self.batch_size = batch_size
         self.update_target_every = update_target_every
 
         # 已经完成的游戏数量
-        self.game_count = 0
+        self._game_count = 0
 
         # 状态空间大小 (手牌编码 + 最后出牌编码 + 其他玩家状态)
         # 计算牌值范围（3-17，3到A再到2，最后是小王和大王）
-        self.rank_range = 15
+        self._rank_range = 15
 
         # 调整归一化因子，最多可能有16张同值牌(4副牌×4张)
         self.max_cards_per_rank = 16
 
         # 手牌编码 + 最后出牌编码 + 其他玩家手牌数量
-        self.state_size = self.rank_range * 2 + 5
+        self.state_size = self._rank_range * 2 + 5
 
         # 动作空间大小 (动作ID到实际牌组合的映射)
         self.action_size = 500  # 从200增加到500
@@ -86,7 +86,7 @@ class DQNTurnHandler(TurnHandlerInterface):
 
         # 优化器
         self.optimizer = optim.Adam(
-            self.model.parameters(), lr=self.learning_rate)
+            self.model.parameters(), lr=self._learning_rate)
 
         # 经验回放
         self.replay_buffer = ReplayBuffer(capacity=20000)
@@ -102,10 +102,10 @@ class DQNTurnHandler(TurnHandlerInterface):
         self.training_mode = True
 
         # 游戏历史记录
-        self.game_history = []
+        self._game_history = []
 
         # 记录当前轮的奖励
-        self.episode_reward = 0
+        self._episode_reward = 0
 
         # 连续PASS次数
         self.consecutive_passes = 0
@@ -125,26 +125,26 @@ class DQNTurnHandler(TurnHandlerInterface):
         state = np.zeros(self.state_size)
 
         # 计算手牌中每个牌值的数量
-        hand_rank_counts = np.zeros(self.rank_range)
+        hand_rank_counts = np.zeros(self._rank_range)
         for card in hand_cards:
             rank_index = card.rank.get_value() - 3
             hand_rank_counts[rank_index] += 1
 
-        for i in range(self.rank_range - 2):  # 减去大小王的2个索引
+        for i in range(self._rank_range - 2):  # 减去大小王的2个索引
             state[i] = hand_rank_counts[i] / 16.0  # 4副牌×4张=16张普通牌
 
         # 对大小王（最后2个索引）
-        state[self.rank_range - 2] = (
-            hand_rank_counts[self.rank_range - 2] / 4.0
+        state[self._rank_range - 2] = (
+            hand_rank_counts[self._rank_range - 2] / 4.0
         )  # 小王最多4张
-        state[self.rank_range - 1] = (
-            hand_rank_counts[self.rank_range - 1] / 4.0
+        state[self._rank_range - 1] = (
+            hand_rank_counts[self._rank_range - 1] / 4.0
         )  # 大王最多4张
 
         # 编码其他玩家手牌数量 (最后5位)
         for i, count in enumerate(player_info):
             if i < 5:  # 只考虑其他5个玩家
-                state[2 * self.rank_range + i] = min(
+                state[2 * self._rank_range + i] = min(
                     count / MAX_HAND_SIZE, 1.0
                 )  # 归一化，假设最多MAX_HAND_SIZE张牌
 
@@ -159,11 +159,11 @@ class DQNTurnHandler(TurnHandlerInterface):
             game_state: 可选，游戏结束时的状态组件
             rankings: 可选，游戏结束时的玩家排名列表
         """
-        self.game_count += 1
+        self._game_count += 1
 
         if self.training_mode:
             # 记录游戏历史
-            self.game_history.append((game_state, rankings))
+            self._game_history.append((game_state, rankings))
 
             # 计算奖励
             for player_id in game_state.players_without_cards:
@@ -285,7 +285,7 @@ class DQNTurnHandler(TurnHandlerInterface):
         if self.epsilon > self.epsilon_min:
             self.epsilon = max(
                 1.0
-                - CardPatternChecker.calculate_armor_reduction(self.game_count, 0.01),
+                - CardPatternChecker.calculate_armor_reduction(self._game_count, 0.01),
                 self.epsilon_min,
             )
 
@@ -302,7 +302,7 @@ class DQNTurnHandler(TurnHandlerInterface):
         """
         self.replay_buffer.add(state, action, reward, next_state, done)
         # 累计本轮奖励
-        self.episode_reward += reward
+        self._episode_reward += reward
 
     def handle_player_turn(self, game_state, player_id, play_system):
         """
@@ -355,6 +355,14 @@ class DQNTurnHandler(TurnHandlerInterface):
                 reward += self.personality.play_reward_factor * len(
                     self.action_mapping[self.last_action]
                 )
+
+                if last_played_cards is not None:
+                    diff_with_last_play = CardPatternChecker.get_value_difference(
+                        self.action_mapping[self.last_action], last_played_cards
+                    )
+
+                    if diff_with_last_play > len(self.action_mapping[self.last_action]):
+                        reward -= self.personality.difference_penalty * diff_with_last_play
 
                 # 计算上一次出牌的拆牌代价并扣减相应奖励
                 last_selected_cards = self.action_mapping[self.last_action]
@@ -430,4 +438,9 @@ class DQNTurnHandler(TurnHandlerInterface):
         """重置回合状态"""
         self.last_state = None
         self.last_action = None
-        self.episode_reward = 0
+        self._episode_reward = 0
+
+    @property
+    def episode_reward(self):
+        """获取当前回合奖励"""
+        return self._episode_reward

@@ -30,6 +30,10 @@ class DQNTrainer:
             self.dqn_handlers[player_id] = DQNTurnHandler()
             self.dqn_handlers[player_id].set_training_mode(True)
 
+        # 所有handler的总奖励
+        self.total_rewards = {
+            player_id: 0 for player_id in range(PLAYER_COUNT)}
+
     def register_dqn_handler(self, player_id, handler):
         """注册DQN处理器"""
         self.dqn_handlers[player_id] = handler
@@ -71,7 +75,7 @@ class DQNTrainer:
         # 获取游戏状态组件并重置
         for _, game_state in esper.get_component(GameStateComponent):
             game_state.phase = "dealing"
-            game_state._current_player_id = 0
+            game_state.current_player_id = 0
             game_state._players_without_cards.clear()
             game_state.rankings.clear()
 
@@ -108,6 +112,10 @@ class DQNTrainer:
             list(range(1, 6)), DefaultAITurnHandler)
 
         game.run()
+
+        for handler in self.dqn_handlers.values():
+            total_reward = handler.episode_reward
+            handler.reset_episode()
 
         return total_reward
 

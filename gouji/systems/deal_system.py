@@ -53,15 +53,15 @@ class DealSystem(esper.Processor):
             # 发牌完成后切换到出牌阶段
             for _, game_state in esper.get_component(GameStateComponent):
                 game_state.phase = "playing"
-                game_state._current_player_id = random.randint(0, 5)
+                game_state.current_player_id = random.randint(0, 5)
 
                 # 找到开始玩家的名称
                 player_name = self.get_player_name_by_id(
-                    game_state._current_player_id)
+                    game_state.current_player_id)
                 logging.debug(f"\n发牌完成! {player_name} 开始出牌\n")
 
                 # 如果第一个出牌的不是人类玩家，提示等待
-                if game_state._current_player_id != game_state.human_player_id:
+                if game_state.current_player_id != game_state.human_player_id:
                     logging.debug(f"等待 {player_name} 出牌...")
 
     def display_human_player_cards(self):

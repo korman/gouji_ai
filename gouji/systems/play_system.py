@@ -76,7 +76,11 @@ class PlaySystem(esper.Processor):
         人类还是AI，调用相应的处理方法。
         """
 
-        self._validate_handlers()
+        try:
+            self._validate_handlers()
+        except ValueError as e:
+            logging.error(e)
+            return
 
         # 只有在出牌阶段才处理
         for _, game_state in esper.get_component(GameStateComponent):
@@ -85,11 +89,11 @@ class PlaySystem(esper.Processor):
                 db_record = esper.get_processor(DatabaseSystem)
 
                 # 检查游戏结束条件
-                if len(game_state._players_without_cards) == 5:
+                if len(game_state.players_without_cards) == 5:
                     last_player_id = next(
                         id
                         for id in range(6)
-                        if id not in game_state._players_without_cards
+                        if id not in game_state.players_without_cards
                     )
                     last_player_name = self.get_player_name_by_id(
                         last_player_id)
@@ -174,7 +178,7 @@ class PlaySystem(esper.Processor):
                         logging.debug(
                             f"\n🎉 {current_player_name} 出完了所有牌，排名第{len(game_state.rankings) + 1}!"
                         )
-                        game_state._players_without_cards.add(
+                        game_state.players_without_cards.add(
                             current_player_id)
                         game_state.rankings.append(current_player_id)
                         self._active_players -= 1

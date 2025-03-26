@@ -54,7 +54,7 @@ if __name__ == "__main__":
     # game.register_handlers_for_players(list(range(2, 6)), DefaultAITurnHandler)
 
     # 创建DQN训练器
-    trainer = DQNTrainer(num_episodes=2000)
+    trainer = DQNTrainer(num_episodes=500)
 
     # 开始训练
     logging.info("开始DQN训练...")

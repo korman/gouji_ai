@@ -11,15 +11,16 @@ class AIPersonalityConfig:
     """
 
     name: str
-    breaking_cost_factor: float = 0.1  # 拆牌惩罚系数
+    breaking_cost_factor: float = 0.001  # 拆牌惩罚系数
     risk_factor: float = 1.0  # 风险倾向系数
     play_reward_factor: float = 0.01  # 出牌奖励系数
-    pass_penalty: float = 0.1  # PASS惩罚
+    pass_penalty: float = 0.01  # PASS惩罚
     bomb_value: float = 1.0  # 炸弹价值系数
     early_lead_bonus: float = 0.0  # 提前出牌奖励
     small_card_priority: float = 0.0  # 小牌优先系数
     dynamic_adjustment: bool = False  # 是否根据局势动态调整策略
     team_cooperation_factor: float = 0.0  # 团队合作系数(辅助型AI专用)
+    difference_penalty: float = 0.01  # 牌值差异惩罚系数
 
     # 添加PPO特定参数
     exploration_factor: float = 1.0  # 探索因子，影响PPO的熵正则化
@@ -56,16 +57,16 @@ class AIPersonality(Enum):
     # 平衡型AI - 默认性格，各方面较为均衡
     BALANCED = AIPersonalityConfig(
         name="平衡型",
-        breaking_cost_factor=0.1,
+        breaking_cost_factor=0.001,
         risk_factor=1.0,
         play_reward_factor=0.01,
-        pass_penalty=0.1,
+        pass_penalty=0.01,
     )
 
     # 保守型AI - 极少拆牌，重视牌型完整性
     CONSERVATIVE = AIPersonalityConfig(
         name="保守型",
-        breaking_cost_factor=0.2,  # 高拆牌惩罚
+        breaking_cost_factor=0.01,  # 高拆牌惩罚
         risk_factor=0.5,  # 低风险偏好
         play_reward_factor=0.005,  # 减少出牌激励
         pass_penalty=0.05,  # 降低PASS惩罚

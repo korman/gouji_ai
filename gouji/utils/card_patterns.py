@@ -241,3 +241,44 @@ class CardPatternChecker:
         # 构建字符串表示
         ranks_str = " ".join(ranks)
         return f"[{ranks_str}]"
+
+    @staticmethod
+    def get_total_value(cards: List[Card]) -> int:
+        """
+        获取一组牌的点数总和
+
+        参数:
+            cards: 要计算总值的扑克牌列表
+
+        返回:
+            int: 所有牌的点数总和
+        """
+        if not cards:
+            return 0
+
+        total = 0
+        for card in cards:
+            total += card._rank.get_value()
+
+        return total
+
+    @staticmethod
+    def get_value_difference(cards1: List[Card], cards2: List[Card]) -> int:
+        """
+        计算两组牌的牌值总和之差
+
+        参数:
+            cards1: 第一组扑克牌
+            cards2: 第二组扑克牌
+
+        返回:
+            int: cards1总值减去cards2总值的差值
+        """
+        # 获取第一组牌的总值
+        value1 = CardPatternChecker.get_total_value(cards1)
+
+        # 获取第二组牌的总值
+        value2 = CardPatternChecker.get_total_value(cards2)
+
+        # 返回差值
+        return value1 - value2
