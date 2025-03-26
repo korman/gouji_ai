@@ -63,6 +63,7 @@ class DQNTurnHandler(TurnHandlerInterface):
         self._epsilon = epsilon
         self._batch_size = batch_size
         self._update_target_every = update_target_every
+        self._reward = 0.0
 
         # 已经完成的游戏数量
         self._game_count = 0
@@ -177,11 +178,13 @@ class DQNTurnHandler(TurnHandlerInterface):
                     reward = RANK_REWARDS.get(rank, -10.0)  # 默认值为-10，以防排名超出预期
                     break
 
+            self._reward += reward
+
             # 记录经验
             self.record_experience(
                 self._last_state,
                 self._last_action,
-                reward,
+                self._reward,
                 np.zeros(self._state_size),
                 True,
             )
@@ -302,7 +305,7 @@ class DQNTurnHandler(TurnHandlerInterface):
         """
         self._replay_buffer.add(state, action, reward, next_state, done)
         # 累计本轮奖励
-        self._episode_reward += reward
+        self._episode_reward = reward
 
     def handle_player_turn(self, game_state, player_id, play_system):
         """
@@ -379,6 +382,8 @@ class DQNTurnHandler(TurnHandlerInterface):
                             f"高代价拆牌: {breaking_cost:.2f}, 牌值: {last_selected_cards[0].rank.get_value()}"
                         )
 
+            self._reward += reward
+
         # 选择动作
         action_id = self.select_action(current_state, valid_actions)
         selected_cards = self._action_mapping[action_id]
@@ -439,6 +444,7 @@ class DQNTurnHandler(TurnHandlerInterface):
         self._last_state = None
         self._last_action = None
         self._episode_reward = 0
+        self._reward = 0.0
 
     @property
     def episode_reward(self):
