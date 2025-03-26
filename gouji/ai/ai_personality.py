@@ -2,6 +2,16 @@
 from enum import Enum
 from dataclasses import dataclass
 
+# 定义奖励映射（排名 -> 奖励值）
+RANK_REWARDS = {
+    0: 10.0,  # 第1名 +10
+    1: 5.0,   # 第2名 +5
+    2: 0.0,   # 第3名 0
+    3: 0.0,   # 第4名 0
+    4: -5.0,  # 第5名 -5
+    5: -10.0  # 第6名 -10
+}
+
 
 @dataclass
 class AIPersonalityConfig:

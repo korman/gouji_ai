@@ -23,13 +23,12 @@ class PlaySystem(esper.Processor):
     并相应地执行人类交互或AI决策。
     """
 
-    turn_handlers = {}  # 回合处理器字典
-
     def __init__(self):
         # 新增属性，用于跟踪桌面上最后出的牌
         self._last_played_cards = None
         self._consecutive_passes = 0
         self._last_effective_player_id = None
+        self._turn_handlers = {}  # 回合处理器字典
 
         # 新增：用于跟踪当前回合中选择过牌的玩家
         self._passed_players = set()
@@ -42,7 +41,7 @@ class PlaySystem(esper.Processor):
         """
         析构函数，清空回合处理器字典。
         """
-        self.turn_handlers.clear()
+        self._turn_handlers.clear()
 
     @property
     def last_effective_player_id(self):
@@ -101,7 +100,7 @@ class PlaySystem(esper.Processor):
                     game_state.phase = "game_over"
 
                     # 循环所有处理器，调用游戏结束回调
-                    for _, handler in self.turn_handlers.items():
+                    for _, handler in self._turn_handlers.items():
                         handler.on_game_end(game_state, game_state.rankings)
 
                     db_record.end_game()
@@ -112,8 +111,8 @@ class PlaySystem(esper.Processor):
                 current_player_id = game_state.current_player_id
 
                 # 查找对应的处理器
-                if current_player_id in self.turn_handlers:
-                    handler = self.turn_handlers[current_player_id]
+                if current_player_id in self._turn_handlers:
+                    handler = self._turn_handlers[current_player_id]
                 elif self.default_handler is not None:
                     handler = self.default_handler
                 else:
@@ -375,7 +374,7 @@ class PlaySystem(esper.Processor):
             player_id (int): 玩家ID
             handler (TurnHandlerInterface): 回合处理器实例
         """
-        self.turn_handlers[player_id] = handler
+        self._turn_handlers[player_id] = handler
 
     def _validate_handlers(self):
         """验证是否所有玩家都有对应的处理器"""
@@ -384,7 +383,7 @@ class PlaySystem(esper.Processor):
         # 检查每个玩家ID是否有处理器
         missing_handlers = []
         for player_id in range(PLAYER_COUNT):
-            if player_id not in self.turn_handlers:
+            if player_id not in self._turn_handlers:
                 missing_handlers.append(player_id)
 
         # 如果有玩家没有处理器且没有默认处理器，抛出异常

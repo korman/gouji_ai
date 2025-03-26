@@ -44,7 +44,7 @@ class DealSystem(esper.Processor):
         """
         # 只在第一次运行时发牌
         if not self._dealt:
-            self.deal_all_cards()
+            self._deal_all_cards()
             self._dealt = True
 
             # 发牌完成后，先展示人类玩家的手牌
@@ -149,7 +149,7 @@ class DealSystem(esper.Processor):
                 return ent
         return None
 
-    def deal_all_cards(self):
+    def _deal_all_cards(self):
         """
         将牌组中的所有牌均匀分配给所有玩家。
 

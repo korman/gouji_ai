@@ -20,53 +20,49 @@ class DQNTrainer:
         参数:
             num_episodes: 训练轮数
         """
-        self.num_episodes = num_episodes
-        self.dqn_handlers = {}  # 所有DQN处理器
-        self.episode_rewards = []  # 每轮奖励
-        self.current_game = 0
-        self.training = False
+        self._num_episodes = num_episodes
+        self._dqn_handlers = {}  # 所有DQN处理器
+        self._episode_rewards = []  # 每轮奖励
+        self._current_game = 0
+        self._training = False
 
         for player_id in range(1):
-            self.dqn_handlers[player_id] = DQNTurnHandler()
-            self.dqn_handlers[player_id].set_training_mode(True)
-
-        # 所有handler的总奖励
-        self.total_rewards = {
-            player_id: 0 for player_id in range(PLAYER_COUNT)}
+            self._dqn_handlers[player_id] = DQNTurnHandler(player_id)
+            self._dqn_handlers[player_id].set_training_mode(True)
 
     def register_dqn_handler(self, player_id, handler):
         """注册DQN处理器"""
-        self.dqn_handlers[player_id] = handler
+        self._dqn_handlers[player_id] = handler
 
     def train(self):
         """开始训练流程"""
-        logging.info(f"开始DQN训练，共{self.num_episodes}轮...")
-        self.training = True
+        logging.info(f"开始DQN训练，共{self._num_episodes}轮...")
+        self._training = True
 
-        for episode in range(self.num_episodes):
+        for episode in range(self._num_episodes):
             # 重置游戏
             self._reset_game()
 
             # 运行一轮游戏
             episode_reward = self._run_episode()
-            self.episode_rewards.append(episode_reward)
+            self._episode_rewards.append(episode_reward)
 
             # 每100轮输出一次进度
             if (episode + 1) % 100 == 0:
-                avg_reward = sum(self.episode_rewards[-100:]) / 100
+                avg_reward = sum(self._episode_rewards[-100:]) / 100
                 logging.info(
-                    f"轮次: {episode+1}/{self.num_episodes}, 平均奖励: {avg_reward:.2f}, 探索率: {list(self.dqn_handlers.values())[0].epsilon:.2f}"
+                    f"轮次: {episode+1}/{self._num_episodes}, 平均奖励: {avg_reward:.2f}, 探索率: {list(self._dqn_handlers.values())[0].epsilon:.2f}"
                 )
 
                 # 保存检查点
-                for player_id, handler in self.dqn_handlers.items():
+                for player_id, handler in self._dqn_handlers.items():
                     handler.save_model(
                         f"models/dqn_player_{player_id}_ep_{episode+1}.pt"
                     )
 
-            self.current_game += 1
+            self._current_game += 1
 
-        self.current_game = 0
+        self._current_game = 0
 
         logging.info("训练完成")
 
@@ -91,29 +87,29 @@ class DQNTrainer:
 
         game = None
 
-        if self.training:
-            game = GoujiGame("training_" + str(self.current_game))
+        if self._training:
+            game = GoujiGame("training_" + str(self._current_game))
         else:
-            game = GoujiGame("evaluation_" + str(self.current_game))
+            game = GoujiGame("evaluation_" + str(self._current_game))
 
         db_record_system = esper.get_processor(DatabaseSystem)
 
-        if self.training:
-            db_record_system.start_new_game("training", self.current_game)
+        if self._training:
+            db_record_system.start_new_game("training", self._current_game)
         else:
-            db_record_system.start_new_game("evaluation", self.current_game)
+            db_record_system.start_new_game("evaluation", self._current_game)
 
         # 把self.dqn_handlers中的处理器注册到游戏中
         # for player_id, handler in self.dqn_handlers.items():
         #     game.register_handler_for_player(player_id, handler)
 
-        game.register_handler_for_player(0, self.dqn_handlers[0])
+        game.register_handler_for_player(0, self._dqn_handlers[0])
         game.register_handlers_for_players(
             list(range(1, 6)), DefaultAITurnHandler)
 
         game.run()
 
-        for handler in self.dqn_handlers.values():
+        for handler in self._dqn_handlers.values():
             total_reward = handler.episode_reward
             handler.reset_episode()
 
@@ -128,15 +124,15 @@ class DQNTrainer:
         """
         logging.info(f"开始评估，共{num_games}局...")
 
-        self.training = False
+        self._training = False
 
         # 将所有DQN处理器设置为评估模式
-        for handler in self.dqn_handlers.values():
+        for handler in self._dqn_handlers.values():
             handler.load_model("models/dqn_player0_final.pt")
             handler.set_training_mode(False)
 
-        win_counts = {player_id: 0 for player_id in self.dqn_handlers.keys()}
-        rank_sum = {player_id: 0 for player_id in self.dqn_handlers.keys()}
+        win_counts = {player_id: 0 for player_id in self._dqn_handlers.keys()}
+        rank_sum = {player_id: 0 for player_id in self._dqn_handlers.keys()}
 
         for game in range(num_games):
             # 重置游戏
@@ -148,7 +144,7 @@ class DQNTrainer:
             # 记录结果
             for _, game_state in esper.get_component(GameStateComponent):
                 for i, player_id in enumerate(game_state.rankings):
-                    if player_id in self.dqn_handlers:
+                    if player_id in self._dqn_handlers:
                         rank_sum[player_id] += i + 1
                         if i == 0:  # 第一名
                             win_counts[player_id] += 1
@@ -156,13 +152,13 @@ class DQNTrainer:
             if (game + 1) % 10 == 0:
                 logging.info(f"已评估 {game+1}/{num_games} 局")
 
-            self.current_game += 1
+            self._current_game += 1
 
-        self.current_game = 0
+        self._current_game = 0
 
         # 输出结果
         logging.info("\n评估结果:")
-        for player_id in self.dqn_handlers.keys():
+        for player_id in self._dqn_handlers.keys():
             avg_rank = rank_sum[player_id] / num_games
             win_rate = win_counts[player_id] / num_games * 100
             logging.info(
@@ -173,4 +169,4 @@ class DQNTrainer:
 
     # 获取所有DQN处理器
     def get_dqn_handlers(self):
-        return self.dqn_handlers
+        return self._dqn_handlers

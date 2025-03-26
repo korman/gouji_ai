@@ -13,7 +13,7 @@ from collections import deque
 from .replay_buffer import ReplayBuffer
 from gouji.constants import PLAYER_COUNT, MAX_HAND_SIZE
 from gouji.interface import PlayerAction
-from ..ai_personality import AIPersonality
+from ..ai_personality import AIPersonality, RANK_REWARDS
 
 
 class DQNTurnHandler(TurnHandlerInterface):
@@ -24,6 +24,7 @@ class DQNTurnHandler(TurnHandlerInterface):
 
     def __init__(
         self,
+        id,
         personality=None,
         learning_rate=0.001,
         gamma=0.99,
@@ -50,6 +51,8 @@ class DQNTurnHandler(TurnHandlerInterface):
             personality.value if personality else AIPersonality.BALANCED.value
         )
         logging.info(f"创建 {self._personality.name} AI")
+
+        self._id = id
 
         dqn_params = self._personality.get_algorithm_params("dqn")
         self._epsilon_decay = dqn_params.get("epsilon_decay", 0.995)
@@ -165,26 +168,23 @@ class DQNTurnHandler(TurnHandlerInterface):
             # 记录游戏历史
             self._game_history.append((game_state, rankings))
 
+            reward = -10.0  # 默认值
+
             # 计算奖励
-            for player_id in game_state.players_without_cards:
-                if player_id == 0:
-                    # 胜利奖励
-                    self.record_experience(
-                        self._last_state,
-                        self._last_action,
-                        10.0,
-                        np.zeros(self._state_size),
-                        True,
-                    )
-                else:
-                    # 失败惩罚
-                    self.record_experience(
-                        self._last_state,
-                        self._last_action,
-                        -10.0,
-                        np.zeros(self._state_size),
-                        True,
-                    )
+            for rank, player_id in enumerate(game_state.rankings):
+                if player_id == self._id:
+                    # 根据排名查找对应奖励
+                    reward = RANK_REWARDS.get(rank, -10.0)  # 默认值为-10，以防排名超出预期
+                    break
+
+            # 记录经验
+            self.record_experience(
+                self._last_state,
+                self._last_action,
+                reward,
+                np.zeros(self._state_size),
+                True,
+            )
 
             # 更新模型
             self.update_model()
@@ -444,3 +444,8 @@ class DQNTurnHandler(TurnHandlerInterface):
     def episode_reward(self):
         """获取当前回合奖励"""
         return self._episode_reward
+
+    @property
+    def epsilon(self):
+        """获取当前探索率"""
+        return self._epsilon
