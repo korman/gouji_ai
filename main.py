@@ -19,7 +19,7 @@ if __name__ == "__main__":
     )
 
     # 创建DQN训练器实例，设置训练回合数为10000
-    trainer = DQNTrainer(num_episodes=11)
+    trainer = DQNTrainer(num_episodes=2000)
 
     # 开始DQN训练过程
     logging.info("开始DQN训练...")
@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
     # 对训练好的模型进行评估，进行30局游戏测试
     logging.info("开始评估模型...")
-    trainer.evaluate(num_games=1)
+    trainer.evaluate(num_games=10)
 
     # 使用训练好的模型进行一局演示游戏
     logging.info("\n使用训练好的模型进行一局游戏演示...")

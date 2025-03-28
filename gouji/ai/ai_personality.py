@@ -24,8 +24,8 @@ class AIPersonalityConfig:
         name: str,
         breaking_cost_factor: float = 0.001,  # 拆牌惩罚系数
         risk_factor: float = 1.0,  # 风险倾向系数
-        play_reward_factor: float = 0.01,  # 出牌奖励系数
-        pass_penalty: float = 0.01,  # PASS惩罚
+        play_reward_factor: float = 0.00,  # 出牌奖励系数
+        pass_penalty: float = 0.0,  # PASS惩罚
         bomb_value: float = 1.0,  # 炸弹价值系数
         early_lead_bonus: float = 0.0,  # 提前出牌奖励
         small_card_priority: float = 0.0,  # 小牌优先系数
@@ -127,10 +127,10 @@ class AIPersonality(Enum):
     # 平衡型AI - 默认性格，各方面较为均衡
     BALANCED = AIPersonalityConfig(
         name="平衡型",
-        breaking_cost_factor=0.001,
+        breaking_cost_factor=1,
         risk_factor=1.0,
         play_reward_factor=0.01,
-        pass_penalty=0.01,
+        pass_penalty=0.00,
     )
 
     # 保守型AI - 极少拆牌，重视牌型完整性
