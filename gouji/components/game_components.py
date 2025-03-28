@@ -2,7 +2,7 @@ class GameStateComponent:
     """表示游戏状态的组件"""
 
     def __init__(self):
-        self.phase = (
+        self._phase = (
             "dealing"  # 游戏阶段：dealing(发牌), playing(出牌), game_over(结束)
         )
         self._current_player_id = 0  # 当前玩家ID
@@ -29,3 +29,11 @@ class GameStateComponent:
     @property
     def human_player_id(self):
         return self._human_player_id
+
+    @property
+    def phase(self):
+        return self._phase
+
+    @phase.setter
+    def phase(self, phase):
+        self._phase = phase
