@@ -20,17 +20,17 @@ class AIPersonalityConfig:
     (DQN, PPO, A2C, DDPG等)
     """
 
-    name: str
-    breaking_cost_factor: float = 0.001  # 拆牌惩罚系数
-    risk_factor: float = 1.0  # 风险倾向系数
-    play_reward_factor: float = 0.01  # 出牌奖励系数
-    pass_penalty: float = 0.01  # PASS惩罚
-    bomb_value: float = 1.0  # 炸弹价值系数
-    early_lead_bonus: float = 0.0  # 提前出牌奖励
-    small_card_priority: float = 0.0  # 小牌优先系数
-    dynamic_adjustment: bool = False  # 是否根据局势动态调整策略
-    team_cooperation_factor: float = 0.0  # 团队合作系数(辅助型AI专用)
-    difference_penalty: float = 0.01  # 牌值差异惩罚系数
+    _name: str
+    _breaking_cost_factor: float = 0.001  # 拆牌惩罚系数
+    _risk_factor: float = 1.0  # 风险倾向系数
+    _play_reward_factor: float = 0.01  # 出牌奖励系数
+    _pass_penalty: float = 0.01  # PASS惩罚
+    _bomb_value: float = 1.0  # 炸弹价值系数
+    _early_lead_bonus: float = 0.0  # 提前出牌奖励
+    _small_card_priority: float = 0.0  # 小牌优先系数
+    _dynamic_adjustment: bool = False  # 是否根据局势动态调整策略
+    _team_cooperation_factor: float = 0.0  # 团队合作系数(辅助型AI专用)
+    _difference_penalty: float = 0.01  # 牌值差异惩罚系数
 
     # 添加PPO特定参数
     exploration_factor: float = 1.0  # 探索因子，影响PPO的熵正则化
@@ -48,12 +48,12 @@ class AIPersonalityConfig:
         """
         if algorithm_type.lower() == "dqn":
             return {
-                "epsilon_decay": 0.998 * self.risk_factor,
-                "epsilon_min": 0.01 / self.risk_factor,
+                "epsilon_decay": 0.998 * self._risk_factor,
+                "epsilon_min": 0.01 / self._risk_factor,
             }
         elif algorithm_type.lower() == "ppo":
             return {
-                "clip_param": 0.2 * self.risk_factor,
+                "clip_param": 0.2 * self._risk_factor,
                 "entropy_coef": 0.01 * self.exploration_factor,
                 "vf_coef": 0.5,
             }
@@ -66,89 +66,89 @@ class AIPersonality(Enum):
 
     # 平衡型AI - 默认性格，各方面较为均衡
     BALANCED = AIPersonalityConfig(
-        name="平衡型",
-        breaking_cost_factor=0.001,
-        risk_factor=1.0,
-        play_reward_factor=0.01,
-        pass_penalty=0.01,
+        _name="平衡型",
+        _breaking_cost_factor=0.001,
+        _risk_factor=1.0,
+        _play_reward_factor=0.01,
+        _pass_penalty=0.01,
     )
 
     # 保守型AI - 极少拆牌，重视牌型完整性
     CONSERVATIVE = AIPersonalityConfig(
-        name="保守型",
-        breaking_cost_factor=0.01,  # 高拆牌惩罚
-        risk_factor=0.5,  # 低风险偏好
-        play_reward_factor=0.005,  # 减少出牌激励
-        pass_penalty=0.05,  # 降低PASS惩罚
-        bomb_value=1.5,  # 高炸弹价值
+        _name="保守型",
+        _breaking_cost_factor=0.01,  # 高拆牌惩罚
+        _risk_factor=0.5,  # 低风险偏好
+        _play_reward_factor=0.005,  # 减少出牌激励
+        _pass_penalty=0.05,  # 降低PASS惩罚
+        _bomb_value=1.5,  # 高炸弹价值
     )
 
     # 激进型AI - 优先快速出牌，敢于拆牌
     AGGRESSIVE = AIPersonalityConfig(
-        name="激进型",
-        breaking_cost_factor=0.05,  # 低拆牌惩罚
-        risk_factor=1.5,  # 高风险偏好
-        play_reward_factor=0.03,  # 高出牌奖励
-        pass_penalty=0.2,  # 高PASS惩罚
-        early_lead_bonus=0.02,  # 提前出牌额外奖励
+        _name="激进型",
+        _breaking_cost_factor=0.05,  # 低拆牌惩罚
+        _risk_factor=1.5,  # 高风险偏好
+        _play_reward_factor=0.03,  # 高出牌奖励
+        _pass_penalty=0.2,  # 高PASS惩罚
+        _early_lead_bonus=0.02,  # 提前出牌额外奖励
     )
 
     # 策略型AI - 根据局势动态调整策略
     STRATEGIC = AIPersonalityConfig(
-        name="策略型",
-        breaking_cost_factor=0.12,
-        risk_factor=1.0,
-        play_reward_factor=0.015,
-        pass_penalty=0.12,
-        dynamic_adjustment=True,  # 启用动态策略调整
+        _name="策略型",
+        _breaking_cost_factor=0.12,
+        _risk_factor=1.0,
+        _play_reward_factor=0.015,
+        _pass_penalty=0.12,
+        _dynamic_adjustment=True,  # 启用动态策略调整
     )
 
     # 小牌优先型AI - 优先出小牌，保留大牌
     SMALL_FIRST = AIPersonalityConfig(
-        name="小牌优先型",
-        breaking_cost_factor=0.08,
-        risk_factor=1.2,
-        play_reward_factor=0.015,
-        pass_penalty=0.15,
-        small_card_priority=0.03,  # 小牌优先奖励
+        _name="小牌优先型",
+        _breaking_cost_factor=0.08,
+        _risk_factor=1.2,
+        _play_reward_factor=0.015,
+        _pass_penalty=0.15,
+        _small_card_priority=0.03,  # 小牌优先奖励
     )
 
     # 炸弹收藏家 - 特别重视保留炸弹
     BOMB_COLLECTOR = AIPersonalityConfig(
-        name="炸弹收藏家",
-        breaking_cost_factor=0.15,
-        risk_factor=0.8,
-        play_reward_factor=0.01,
-        pass_penalty=0.1,
-        bomb_value=3.0,  # 极高炸弹价值
+        _name="炸弹收藏家",
+        _breaking_cost_factor=0.15,
+        _risk_factor=0.8,
+        _play_reward_factor=0.01,
+        _pass_penalty=0.1,
+        _bomb_value=3.0,  # 极高炸弹价值
     )
 
     # 辅助型AI - 专注于团队配合
     SUPPORTIVE = AIPersonalityConfig(
-        name="辅助型",
-        breaking_cost_factor=0.1,
-        risk_factor=0.9,
-        play_reward_factor=0.01,
-        pass_penalty=0.1,
-        team_cooperation_factor=0.5,  # 高团队合作系数
+        _name="辅助型",
+        _breaking_cost_factor=0.1,
+        _risk_factor=0.9,
+        _play_reward_factor=0.01,
+        _pass_penalty=0.1,
+        _team_cooperation_factor=0.5,  # 高团队合作系数
     )
 
     # 进攻型辅助 - 辅助队友的同时保持进攻性
     OFFENSIVE_SUPPORT = AIPersonalityConfig(
-        name="进攻型辅助",
-        breaking_cost_factor=0.07,
-        risk_factor=1.3,
-        play_reward_factor=0.02,
-        pass_penalty=0.15,
-        team_cooperation_factor=0.3,  # 中等团队合作系数
+        _name="进攻型辅助",
+        _breaking_cost_factor=0.07,
+        _risk_factor=1.3,
+        _play_reward_factor=0.02,
+        _pass_penalty=0.15,
+        _team_cooperation_factor=0.3,  # 中等团队合作系数
     )
 
     # 防守型辅助 - 更注重保护队友
     DEFENSIVE_SUPPORT = AIPersonalityConfig(
-        name="防守型辅助",
-        breaking_cost_factor=0.15,
-        risk_factor=0.7,
-        play_reward_factor=0.008,
-        pass_penalty=0.08,
-        team_cooperation_factor=0.7,  # 极高团队合作系数
+        _name="防守型辅助",
+        _breaking_cost_factor=0.15,
+        _risk_factor=0.7,
+        _play_reward_factor=0.008,
+        _pass_penalty=0.08,
+        _team_cooperation_factor=0.7,  # 极高团队合作系数
     )

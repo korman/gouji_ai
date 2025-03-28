@@ -8,15 +8,15 @@ class ReplayBuffer:
     """经验回放缓冲区"""
 
     def __init__(self, capacity=10000):
-        self.buffer = deque(maxlen=capacity)
+        self._buffer = deque(maxlen=capacity)
 
     def add(self, state, action, reward, next_state, done):
-        self.buffer.append((state, action, reward, next_state, done))
+        self._buffer.append((state, action, reward, next_state, done))
 
     def sample(self, batch_size):
-        batch = random.sample(self.buffer, batch_size)
+        batch = random.sample(self._buffer, batch_size)
         states, actions, rewards, next_states, dones = zip(*batch)
         return states, actions, rewards, next_states, dones
 
     def __len__(self):
-        return len(self.buffer)
+        return len(self._buffer)

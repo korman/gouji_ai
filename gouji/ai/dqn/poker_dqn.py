@@ -8,7 +8,7 @@ class PokerDQN(nn.Module):
         super(PokerDQN, self).__init__()
 
         # 特征提取层
-        self.feature_network = nn.Sequential(
+        self._feature_network = nn.Sequential(
             nn.Linear(state_size, hidden_size),
             nn.ReLU(),
             nn.Linear(hidden_size, hidden_size),
@@ -16,14 +16,14 @@ class PokerDQN(nn.Module):
         )
 
         # 优势流和价值流 (Dueling DQN架构)
-        self.advantage_stream = nn.Linear(hidden_size, action_size)
-        self.value_stream = nn.Linear(hidden_size, 1)
+        self._advantage_stream = nn.Linear(hidden_size, action_size)
+        self._value_stream = nn.Linear(hidden_size, 1)
 
     def forward(self, x):
-        features = self.feature_network(x)
+        features = self._feature_network(x)
 
-        advantage = self.advantage_stream(features)
-        value = self.value_stream(features)
+        advantage = self._advantage_stream(features)
+        value = self._value_stream(features)
 
         # 合并优势和价值 (Q = V + A - mean(A))
         q_values = value + (advantage - advantage.mean(dim=1, keepdim=True))
