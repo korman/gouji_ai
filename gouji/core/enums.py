@@ -1,3 +1,6 @@
+from enum import Enum
+
+
 class PlayStrategy(Enum):
     """出牌策略枚举"""
     PLAY_MINIMAL = "出最小值的一组牌"  # 出最小点数的牌组
