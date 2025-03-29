@@ -1,10 +1,9 @@
 import esper
 import logging
 from ..components import PlayerComponent, Hand, TeamComponent, GameStateComponent
-from ..systems import DeckSystem, DealSystem, PlaySystem
+from ..systems import DeckSystem, DealSystem, PlaySystem, DatabaseSystem, StrategySystem
 from ..constants import Team, ScoringRules
 from ..interface import TurnHandlerInterface
-from ..systems import DatabaseSystem
 
 
 class GoujiGame:
@@ -54,11 +53,15 @@ class GoujiGame:
         sqlite_db = DatabaseSystem()
         sqlite_db.record_training = False
 
+        # 注册策略系统
+        strategy_system = StrategySystem()
+
         # 添加处理器
         esper.add_processor(self._deck_system)
         esper.add_processor(self._deal_system)
         esper.add_processor(self._play_system)
         esper.add_processor(sqlite_db)
+        esper.add_processor(strategy_system)
 
     def register_turn_handler(self, player_id, handler, is_human=None):
         """

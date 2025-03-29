@@ -1,4 +1,7 @@
 import esper
+from typing import List, Set, Optional
+from ..components import Card
+from ..core import PlayStrategy
 
 
 class StrategySystem(esper.Processor):
@@ -26,5 +29,18 @@ class StrategySystem(esper.Processor):
         处理器的主要执行方法，由ECS系统自动调用。
 
         在当前实现中，该方法没有执行任何操作。
+        """
+        pass
+
+    def get_available_strategies(self, hand_cards: List[Card], previous_cards: Optional[List[Card]] = None) -> Set[PlayStrategy]:
+        """
+        获取所有可用的出牌策略
+
+        参数:
+            hand_cards: 当前手牌
+            previous_cards: 上家出的牌（None表示可以任意出牌）
+
+        返回:
+            所有可用策略的集合
         """
         pass
