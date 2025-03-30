@@ -9,9 +9,8 @@ from gouji.interface import TurnHandlerInterface
 from gouji.components import PlayerComponent, Hand, TeamComponent, Card
 from gouji.utils import CardPatternChecker
 from .dqn_network import DQNNetwork
-from collections import deque
 from .replay_buffer import ReplayBuffer
-from gouji.constants import PLAYER_COUNT, MAX_HAND_SIZE
+from gouji.constants import MAX_HAND_SIZE
 from gouji.interface import PlayerAction
 from ..ai_personality import AIPersonality, RANK_REWARDS
 

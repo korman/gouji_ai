@@ -72,7 +72,7 @@ class DQNTrainer:
         for _, game_state in esper.get_component(GameStateComponent):
             game_state.phase = "dealing"
             game_state.current_player_id = 0
-            game_state._players_without_cards.clear()
+            game_state.players_without_cards.clear()
             game_state.rankings.clear()
 
         # 重新发牌
@@ -98,10 +98,6 @@ class DQNTrainer:
             db_record_system.start_new_game("training", self._current_game)
         else:
             db_record_system.start_new_game("evaluation", self._current_game)
-
-        # 把self.dqn_handlers中的处理器注册到游戏中
-        # for player_id, handler in self.dqn_handlers.items():
-        #     game.register_handler_for_player(player_id, handler)
 
         game.register_handler_for_player(0, self._dqn_handlers[0])
         game.register_handlers_for_players(
