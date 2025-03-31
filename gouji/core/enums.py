@@ -6,11 +6,17 @@ class PlayStrategy(Enum):
     PLAY_MINIMAL = "出最小值的一组牌"
     SPLIT_PLAY = "拆牌压制"
     BOMB_PLAY = "炸弹压制"
-    SINGLE_PLAY = "出单牌"
     LONG_CHAIN_PLAY = "出5个以上的小值牌"
     BIG_JOKER_PLAY = "大王压制"
     SMALL_JOKER_PLAY = "小王压制"
     PASS = "过牌"
+
+    SINGLE_PLAY = "出单牌"
+    PAIR_PLAY = "出对子"
+    THREE_OF_A_KIND_PLAY = "出三张相同点数的牌"
+    FOUR_OF_A_KIND_PLAY = "出四张相同点数的牌"
+    FIVE_OF_A_KIND_PLAY = "出五张相同点数的牌"
+    X_OF_A_KIND_PLAY = "出五张以上相同点数的牌"
 
     # 新增团队配合策略 ★
     FEDERAL_SUPPORT = "联邦救援"  # 帮助联邦队友解围出牌
