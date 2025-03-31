@@ -32,7 +32,9 @@ class StrategySystem(esper.Processor):
         """
         pass
 
-    def get_available_strategies(self, hand_cards: List[Card], previous_cards: Optional[List[Card]] = None) -> Set[PlayStrategy]:
+    def get_available_strategies(
+        self, hand_cards: List[Card], previous_cards: Optional[List[Card]] = None
+    ) -> Set[PlayStrategy]:
         """
         获取所有可用的出牌策略
 

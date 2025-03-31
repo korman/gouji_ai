@@ -100,8 +100,7 @@ class DQNTrainer:
             db_record_system.start_new_game("evaluation", self._current_game)
 
         game.register_handler_for_player(0, self._dqn_handlers[0])
-        game.register_handlers_for_players(
-            list(range(1, 6)), DefaultAITurnHandler)
+        game.register_handlers_for_players(list(range(1, 6)), DefaultAITurnHandler)
 
         game.run()
 

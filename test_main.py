@@ -17,7 +17,7 @@ if __name__ == "__main__":
     game = GoujiGame()
 
     # 为玩家0注册人类处理器
-    #game.register_handlers_for_players([0], HumanPlayerTurnHandler)
+    # game.register_handlers_for_players([0], HumanPlayerTurnHandler)
 
     # 为玩家1-5注册AI处理器
     game.register_handlers_for_players(list(range(0, 6)), DefaultAITurnHandler)
