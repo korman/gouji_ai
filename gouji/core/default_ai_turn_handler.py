@@ -51,9 +51,13 @@ class DefaultAITurnHandler(TurnHandlerInterface):
             if not beating_combinations:
                 # 没有能压过的组合，选择 PASS
                 # 循环输出last_played_cards
-                logging.debug("上一手牌:")
-                for card in last_played_cards:
-                    logging.debug(f"{card}")
+
+                if last_played_cards is not None:
+                    logging.debug("上一手牌:")
+                    for card in last_played_cards:
+                        logging.debug(f"{card}")
+                else:
+                    logging.debug("上一手牌为空")
 
                 return PlayerAction.PASS, []
 

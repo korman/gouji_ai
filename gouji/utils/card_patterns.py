@@ -108,6 +108,50 @@ class CardPatternChecker:
         return beating_combinations
 
     @staticmethod
+    def find_all_beating_combinations_without_splitting(
+        hand_cards: List[Card], target_cards: List[Card] = None
+    ) -> List[List[Card]]:
+        """
+        找出能大过目标牌的所有不拆牌组合
+
+        不拆牌意味着只使用手牌中数量与目标牌相同的完整牌组，不拆分任何牌组。
+        例如，如果手牌中有 4 4 4 4，目标牌是 3 3 3，则不能使用其中的 4 4 4（这属于拆牌）。
+
+        参数:
+            hand_cards: 手中的牌
+            target_cards: 需要大过的目标牌组（可选）
+
+        返回:
+            所有能大过目标牌的不拆牌组合
+        """
+        # 当目标牌为空时，返回所有可能的合法出牌组合
+        if target_cards is None or len(target_cards) == 0:
+            return CardPatternChecker._find_all_valid_plays(hand_cards)
+
+        # 获取目标牌的数量和点数
+        target_count = len(target_cards)
+        target_rank = target_cards[0].rank
+
+        # 将手牌按点数分组
+        rank_groups = {}
+        for card in hand_cards:
+            if card.rank not in rank_groups:
+                rank_groups[card.rank] = []
+            rank_groups[card.rank].append(card)
+
+        beating_combinations = []
+
+        # 遍历每种点数的牌组
+        for rank, cards in rank_groups.items():
+            # 只有当牌组中有与目标牌数量相同的牌，且点数更大时才是有效组合
+            if len(cards) == target_count and rank.get_value() > target_rank.get_value():
+                # 不拆牌原则：只取与目标牌数量相同的牌
+                selected_cards = cards[:target_count]
+                beating_combinations.append(selected_cards)
+
+        return beating_combinations
+
+    @staticmethod
     def _find_all_valid_plays(hand_cards: List[Card]) -> List[List[Card]]:
         """
         找出手牌中所有可能的合法出牌组合
