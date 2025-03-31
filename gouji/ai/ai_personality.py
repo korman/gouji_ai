@@ -1,6 +1,8 @@
 # ai_personality.py
-from enum import Enum
-from dataclasses import dataclass
+from enum import Enum  # 导入Enum类用于创建枚举类型
+from dataclasses import (
+    dataclass,
+)  # 导入dataclass装饰器，简化数据类的创建（虽然本代码未使用）
 
 # 定义奖励映射（排名 -> 奖励值）
 RANK_REWARDS = {
@@ -34,6 +36,23 @@ class AIPersonalityConfig:
         difference_penalty: float = 0.01,  # 牌值差异惩罚系数
         exploration_factor: float = 1.0,  # 探索因子，影响PPO的熵正则化
     ):
+        """
+        初始化AI性格配置对象
+
+        参数:
+            name (str): AI性格的名称
+            breaking_cost_factor (float): 拆牌惩罚系数，值越大越不愿意拆牌
+            risk_factor (float): 风险倾向系数，值越大风险偏好越高
+            play_reward_factor (float): 出牌奖励系数，影响每次出牌获得的奖励
+            pass_penalty (float): PASS惩罚，跳过回合时的负面奖励值
+            bomb_value (float): 炸弹价值系数，影响保留炸弹的倾向
+            early_lead_bonus (float): 提前出牌奖励，鼓励尽早出牌的奖励系数
+            small_card_priority (float): 小牌优先系数，影响优先打出小牌的倾向
+            dynamic_adjustment (bool): 是否根据局势动态调整策略
+            team_cooperation_factor (float): 团队合作系数，影响配合队友的程度
+            difference_penalty (float): 牌值差异惩罚系数，影响连续出牌的一致性
+            exploration_factor (float): 探索因子，影响AI的探索性和多样性
+        """
         self._name = name
         self._breaking_cost_factor = breaking_cost_factor
         self._risk_factor = risk_factor
@@ -49,50 +68,122 @@ class AIPersonalityConfig:
 
     @property
     def name(self) -> str:
+        """
+        获取AI性格名称
+
+        返回:
+            str: AI性格的名称
+        """
         return self._name
 
     @property
     def breaking_cost_factor(self) -> float:
+        """
+        获取拆牌惩罚系数
+
+        返回:
+            float: 拆牌惩罚系数
+        """
         return self._breaking_cost_factor
 
     @property
     def risk_factor(self) -> float:
+        """
+        获取风险倾向系数
+
+        返回:
+            float: 风险倾向系数
+        """
         return self._risk_factor
 
     @property
     def play_reward_factor(self) -> float:
+        """
+        获取出牌奖励系数
+
+        返回:
+            float: 出牌奖励系数
+        """
         return self._play_reward_factor
 
     @property
     def pass_penalty(self) -> float:
+        """
+        获取PASS惩罚值
+
+        返回:
+            float: PASS惩罚值
+        """
         return self._pass_penalty
 
     @property
     def bomb_value(self) -> float:
+        """
+        获取炸弹价值系数
+
+        返回:
+            float: 炸弹价值系数
+        """
         return self._bomb_value
 
     @property
     def early_lead_bonus(self) -> float:
+        """
+        获取提前出牌奖励系数
+
+        返回:
+            float: 提前出牌奖励系数
+        """
         return self._early_lead_bonus
 
     @property
     def small_card_priority(self) -> float:
+        """
+        获取小牌优先系数
+
+        返回:
+            float: 小牌优先系数
+        """
         return self._small_card_priority
 
     @property
     def dynamic_adjustment(self) -> bool:
+        """
+        获取是否启用动态策略调整
+
+        返回:
+            bool: 如果启用返回True，否则返回False
+        """
         return self._dynamic_adjustment
 
     @property
     def team_cooperation_factor(self) -> float:
+        """
+        获取团队合作系数
+
+        返回:
+            float: 团队合作系数
+        """
         return self._team_cooperation_factor
 
     @property
     def difference_penalty(self) -> float:
+        """
+        获取牌值差异惩罚系数
+
+        返回:
+            float: 牌值差异惩罚系数
+        """
         return self._difference_penalty
 
     @property
     def exploration_factor(self) -> float:
+        """
+        获取探索因子
+
+        返回:
+            float: 探索因子
+        """
         return self._exploration_factor
 
     def get_algorithm_params(self, algorithm_type):
@@ -107,22 +198,29 @@ class AIPersonalityConfig:
             dict: 算法特定参数
         """
         if algorithm_type.lower() == "dqn":
+            # DQN算法特定参数设置
             return {
-                "epsilon_decay": 0.998 * self.risk_factor,
-                "epsilon_min": 0.01 / self.risk_factor,
+                "epsilon_decay": 0.998
+                * self.risk_factor,  # epsilon衰减率受风险因子影响
+                "epsilon_min": 0.01 / self.risk_factor,  # 最小epsilon值反比于风险因子
             }
         elif algorithm_type.lower() == "ppo":
+            # PPO算法特定参数设置
             return {
-                "clip_param": 0.2 * self.risk_factor,
-                "entropy_coef": 0.01 * self.exploration_factor,
-                "vf_coef": 0.5,
+                "clip_param": 0.2 * self.risk_factor,  # 裁剪参数受风险因子影响
+                "entropy_coef": 0.01 * self.exploration_factor,  # 熵系数受探索因子影响
+                "vf_coef": 0.5,  # 值函数系数保持不变
             }
         # 可继续扩展其他算法
         return {}
 
 
 class AIPersonality(Enum):
-    """AI性格枚举，包含不同风格的AI预设"""
+    """
+    AI性格枚举，包含不同风格的AI预设
+
+    每个枚举值对应一种AI性格配置，定义了不同行为倾向的AI角色
+    """
 
     # 平衡型AI - 默认性格，各方面较为均衡
     BALANCED = AIPersonalityConfig(
