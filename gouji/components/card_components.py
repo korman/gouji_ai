@@ -1,6 +1,6 @@
-import logging
-from typing import List
-from ..constants import Suit, Rank
+import logging  # 导入日志模块，用于记录调试信息
+from typing import List  # 导入List类型，用于类型提示
+from ..constants import Suit, Rank  # 从constants模块导入花色和点数枚举类
 
 
 class Card:
@@ -70,10 +70,22 @@ class Card:
 
     @property
     def suit(self):
+        """
+        获取牌的花色。
+
+        返回:
+            Suit: 表示花色的枚举值
+        """
         return self._suit
 
     @property
     def rank(self):
+        """
+        获取牌的点数。
+
+        返回:
+            Rank: 表示点数的枚举值
+        """
         return self._rank
 
 
@@ -123,12 +135,30 @@ class Hand:
 
     @property
     def cards(self):
+        """
+        获取所有手牌列表。
+
+        返回:
+            List[Card]: 玩家当前持有的所有牌
+        """
         return self._cards
 
     @cards.setter
     def cards(self, cards: List[Card]):
+        """
+        设置玩家手牌列表。
+
+        参数:
+            cards (List[Card]): 要设置的新手牌列表
+        """
         self._cards = cards
 
     @property
     def sorted(self):
+        """
+        获取手牌是否已排序的状态。
+
+        返回:
+            bool: 如果手牌已排序则为True，否则为False
+        """
         return self._sorted
