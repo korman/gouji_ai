@@ -104,7 +104,8 @@ class DatabaseSystem(esper.Processor):
             return
 
         cards_str = (
-            ", ".join([card.get_rank_display() for card in cards]) if cards else ""
+            ", ".join([card.get_rank_display()
+                      for card in cards]) if cards else ""
         )
         current_hand_str = (
             ", ".join([card.get_rank_display() for card in current_hand])
@@ -209,7 +210,8 @@ class DatabaseSystem(esper.Processor):
 
         try:
             # 批量插入所有待处理记录
-            self._session.execute(self._current_table.insert(), self._pending_records)
+            self._session.execute(
+                self._current_table.insert(), self._pending_records)
             self._session.commit()
             self._pending_records.clear()
         except Exception as e:
