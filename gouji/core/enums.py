@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class PlayStrategy(Enum):
     # 基础策略（原有）
     PLAY_MINIMAL = "出最小值的一组牌"
