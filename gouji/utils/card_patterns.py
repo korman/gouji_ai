@@ -126,7 +126,7 @@ class CardPatternChecker:
         """
         # 当目标牌为空时，返回所有可能的合法出牌组合
         if target_cards is None or len(target_cards) == 0:
-            return CardPatternChecker._find_all_valid_plays(hand_cards)
+            return CardPatternChecker._find_all_valid_plays_without_splitting(hand_cards)
 
         # 获取目标牌的数量和点数
         target_count = len(target_cards)
@@ -178,6 +178,38 @@ class CardPatternChecker:
         for rank, cards in rank_groups.items():
             for count in range(1, len(cards) + 1):
                 all_valid_plays.append(cards[:count])
+
+        return all_valid_plays
+
+    @staticmethod
+    def _find_all_valid_plays_without_splitting(hand_cards: List[Card]) -> List[List[Card]]:
+        """
+        找出手牌中所有可能的不拆牌合法出牌组合
+
+        不拆牌意味着对于每种点数的牌，只返回完整的牌组（例如所有的对子、三张、四张等）
+
+        参数:
+            hand_cards: 玩家手上的牌
+
+        返回:
+            所有不拆牌的合法出牌组合
+        """
+        if not hand_cards:
+            return []
+
+        # 将手牌按点数分组
+        rank_groups = {}
+        for card in hand_cards:
+            if card.rank not in rank_groups:
+                rank_groups[card.rank] = []
+            rank_groups[card.rank].append(card)
+
+        all_valid_plays = []
+
+        # 对每种点数的牌，只生成完整牌组（不拆分）
+        for rank, cards in rank_groups.items():
+            # 只添加完整的牌组
+            all_valid_plays.append(cards)
 
         return all_valid_plays
 

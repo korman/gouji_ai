@@ -61,22 +61,26 @@ def test_find_all_beating_combinations_without_splitting():
     result = CardPatternChecker.find_all_beating_combinations_without_splitting(
         hand_cards, None)
 
+    other_result = CardPatternChecker.find_all_beating_combinations(
+        hand_cards, None)
+
     print(f"手牌: {hand_cards}")
     print(f"目标牌: 无")
     print(f"可能的出牌组合: {result}")
+    print(f"不计拆牌的组合: {other_result}")
     print(f"期望结果: 所有可能的合法出牌组合")
     print()
 
-    # # 测试用例5：多种点数的牌，有的需要拆牌，有的不需要
-    # print("测试用例5: 多种点数的牌，有的需要拆牌，有的不需要")
-    # hand_cards = create_cards(4, 4) + create_cards(5, 2) + \
-    #     create_cards(6, 2) + create_cards(8, 2)
-    # target_cards = create_cards(3, 2)
+    # 测试用例5：多种点数的牌，有的需要拆牌，有的不需要
+    print("测试用例5: 多种点数的牌，有的需要拆牌，有的不需要")
+    hand_cards = create_cards(Rank.FOUR, 4) + create_cards(Rank.FIVE, 2) + \
+        create_cards(Rank.SIX, 2) + create_cards(Rank.EIGHT, 2)
+    target_cards = create_cards(Rank.THREE, 2)
 
-    # result = CardPatternChecker.find_all_beating_combinations_without_splitting(
-    #     hand_cards, target_cards)
+    result = CardPatternChecker.find_all_beating_combinations_without_splitting(
+        hand_cards, target_cards)
 
-    # print(f"手牌: {hand_cards}")
-    # print(f"目标牌: {target_cards}")
-    # print(f"不拆牌组合: {result}")
-    # print(f"期望结果: 找到三个2张的组合: 两张5，两张6，两张8 (所有正好是2张且点数大于3的牌组)")
+    print(f"手牌: {hand_cards}")
+    print(f"目标牌: {target_cards}")
+    print(f"不拆牌组合: {result}")
+    print(f"期望结果: 找到三个2张的组合: 两张5，两张6，两张8 (所有正好是2张且点数大于3的牌组)")
