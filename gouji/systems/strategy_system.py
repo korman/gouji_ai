@@ -72,22 +72,46 @@ class StrategySystem(esper.Processor):
 
         available_strategies = set()
 
-        if len(CardPatternChecker.find_cards_with_count(hand_cards.cards, 1)) > 0:
+        if len(CardPatternChecker.find_cards_with_count(all_no_split_cards, 1)) > 0:
             available_strategies.add(PlayStrategy.SINGLE)
 
-        if len(CardPatternChecker.find_cards_with_count(hand_cards.cards, 2)) > 0:
+        if len(CardPatternChecker.find_cards_with_count(all_no_split_cards, 2)) > 0:
             available_strategies.add(PlayStrategy.PAIR)
 
-        if len(CardPatternChecker.find_cards_with_count(hand_cards.cards, 3)) > 0:
+        if len(CardPatternChecker.find_cards_with_count(all_no_split_cards, 3)) > 0:
             available_strategies.add(PlayStrategy.TRIPLE)
 
-        if len(CardPatternChecker.find_cards_with_count(hand_cards.cards, 4)) > 0:
+        if len(CardPatternChecker.find_cards_with_count(all_no_split_cards, 4)) > 0:
             available_strategies.add(PlayStrategy.QUAD)
 
-        if len(CardPatternChecker.find_cards_with_count(hand_cards.cards, 5)) > 0:
+        if len(CardPatternChecker.find_cards_with_count(all_no_split_cards, 5)) > 0:
             available_strategies.add(PlayStrategy.PENTA)
 
-        if len(CardPatternChecker.find_cards_with_count(hand_cards.cards, 5)) > 0:
-            available_strategies.add(PlayStrategy.PENTA)
+        if (
+            len(CardPatternChecker.find_cards_with_count(all_no_split_cards, 6, True))
+            > 0
+        ):
+            available_strategies.add(PlayStrategy.MULTI)
+
+        if len(CardPatternChecker.find_cards_with_count(all_available_cards, 1)) > 0:
+            available_strategies.add(PlayStrategy.SPLIT_SINGLE)
+
+        if len(CardPatternChecker.find_cards_with_count(all_available_cards, 2)) > 0:
+            available_strategies.add(PlayStrategy.SPLIT_PAIR)
+
+        if len(CardPatternChecker.find_cards_with_count(all_available_cards, 3)) > 0:
+            available_strategies.add(PlayStrategy.SPLIT_TRIPLE)
+
+        if len(CardPatternChecker.find_cards_with_count(all_available_cards, 4)) > 0:
+            available_strategies.add(PlayStrategy.SPLIT_QUAD)
+
+        if len(CardPatternChecker.find_cards_with_count(all_available_cards, 5)) > 0:
+            available_strategies.add(PlayStrategy.SPLIT_PENTA)
+
+        if (
+            len(CardPatternChecker.find_cards_with_count(all_available_cards, 6, True))
+            > 0
+        ):
+            available_strategies.add(PlayStrategy.SPLIT_MULTI)
 
         return available_strategies
