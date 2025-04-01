@@ -96,8 +96,7 @@ class HumanPlayerTurnHandler(TurnHandlerInterface):
                                     for card in hand.cards
                                     if card.get_rank_display() == rank_value
                                 ]
-                                current_played_cards = random.sample(
-                                    candidates, count)
+                                current_played_cards = random.sample(candidates, count)
                             else:
                                 print(f"您没有{count}张{rank_value}牌。")
                                 continue

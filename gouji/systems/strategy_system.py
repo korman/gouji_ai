@@ -58,8 +58,11 @@ class StrategySystem(esper.Processor):
         last_played_cards = play_system.last_played_cards
 
         # 所有可以压过上家的出牌组合
-        all_available_cards: List[List[Card]] = CardPatternChecker.find_all_beating_combinations(
-            hand_cards.cards, last_played_cards)
+        all_available_cards: List[List[Card]] = (
+            CardPatternChecker.find_all_beating_combinations(
+                hand_cards.cards, last_played_cards
+            )
+        )
 
         available_strategies = set()
 

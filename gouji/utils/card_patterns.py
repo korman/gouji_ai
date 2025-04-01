@@ -126,7 +126,9 @@ class CardPatternChecker:
         """
         # 当目标牌为空时，返回所有可能的合法出牌组合
         if target_cards is None or len(target_cards) == 0:
-            return CardPatternChecker._find_all_valid_plays_without_splitting(hand_cards)
+            return CardPatternChecker._find_all_valid_plays_without_splitting(
+                hand_cards
+            )
 
         # 获取目标牌的数量和点数
         target_count = len(target_cards)
@@ -144,7 +146,10 @@ class CardPatternChecker:
         # 遍历每种点数的牌组
         for rank, cards in rank_groups.items():
             # 只有当牌组中有与目标牌数量相同的牌，且点数更大时才是有效组合
-            if len(cards) == target_count and rank.get_value() > target_rank.get_value():
+            if (
+                len(cards) == target_count
+                and rank.get_value() > target_rank.get_value()
+            ):
                 # 不拆牌原则：只取与目标牌数量相同的牌
                 selected_cards = cards[:target_count]
                 beating_combinations.append(selected_cards)
@@ -182,7 +187,9 @@ class CardPatternChecker:
         return all_valid_plays
 
     @staticmethod
-    def _find_all_valid_plays_without_splitting(hand_cards: List[Card]) -> List[List[Card]]:
+    def _find_all_valid_plays_without_splitting(
+        hand_cards: List[Card],
+    ) -> List[List[Card]]:
         """
         找出手牌中所有可能的不拆牌合法出牌组合
 

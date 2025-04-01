@@ -222,8 +222,7 @@ class GoujiGame:
 
                     logging.debug("游戏结束！排名情况:")
                     for rank, player_id in enumerate(game_state.rankings):
-                        player_name = self._play_system.get_player_name_by_id(
-                            player_id)
+                        player_name = self._play_system.get_player_name_by_id(player_id)
 
                         # 获取该玩家的PlayerComponent 和 TeamComponent
                         player_component = None
