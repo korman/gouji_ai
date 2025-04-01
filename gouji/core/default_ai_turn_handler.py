@@ -44,6 +44,21 @@ class DefaultAITurnHandler(TurnHandlerInterface):
         last_played_cards = play_system.last_played_cards
 
         if hand:
+            strategy_system = esper.get_processor(StrategySystem)
+            if strategy_system is None:
+                raise ValueError("StrategySystem not found")
+
+            available_strategies = strategy_system.get_available_strategies(
+                player_id)
+
+            logging.info("AI 可用策略:")
+            for strategy in available_strategies:
+                logging.info(f"策略: {strategy}")
+
+            # 随机选择一个策略
+            selected_strategy = random.choice(list(available_strategies))
+            logging.info(f"AI 选择的策略: {selected_strategy}")
+
             # 找出能压过上一手牌的组合
             beating_combinations = CardPatternChecker.find_all_beating_combinations(
                 hand.cards, last_played_cards

@@ -1,5 +1,4 @@
 # 导入必要的库
-import esper  # ECS（实体-组件-系统）框架
 import logging  # 日志记录模块
 from gouji.core import GoujiGame  # 导入主游戏类
 from gouji.core import DefaultAITurnHandler  # 导入默认AI回合处理器

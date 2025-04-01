@@ -57,12 +57,6 @@ class StrategySystem(esper.Processor):
         hand_cards = esper.component_for_entity(player_entity, Hand)
         last_played_cards = play_system.last_played_cards
 
-        all_no_split_cards = (
-            CardPatternChecker.find_all_beating_combinations_without_splitting(
-                hand_cards.cards, last_played_cards
-            )
-        )
-
         # 所有可以压过上家的出牌组合
         all_available_cards: List[List[Card]] = (
             CardPatternChecker.find_all_beating_combinations(
@@ -72,46 +66,76 @@ class StrategySystem(esper.Processor):
 
         available_strategies = set()
 
-        if len(CardPatternChecker.find_cards_with_count(all_no_split_cards, 1)) > 0:
-            available_strategies.add(PlayStrategy.SINGLE)
+        if player_id != play_system.last_effective_player_id:
+            # 如果当前玩家不是上家，则可以选择 PASS
+            available_strategies.add(PlayStrategy.PASS)
 
-        if len(CardPatternChecker.find_cards_with_count(all_no_split_cards, 2)) > 0:
-            available_strategies.add(PlayStrategy.PAIR)
+        if len(all_available_cards) > 0:
+            available_strategies.add(PlayStrategy.PLAY_MINIMAL)
 
-        if len(CardPatternChecker.find_cards_with_count(all_no_split_cards, 3)) > 0:
-            available_strategies.add(PlayStrategy.TRIPLE)
+            if len(CardPatternChecker.find_cards_with_count(all_available_cards, 1)) > 0:
+                available_strategies.add(PlayStrategy.SPLIT_SINGLE)
 
-        if len(CardPatternChecker.find_cards_with_count(all_no_split_cards, 4)) > 0:
-            available_strategies.add(PlayStrategy.QUAD)
+            if len(CardPatternChecker.find_cards_with_count(all_available_cards, 2)) > 0:
+                available_strategies.add(PlayStrategy.SPLIT_PAIR)
 
-        if len(CardPatternChecker.find_cards_with_count(all_no_split_cards, 5)) > 0:
-            available_strategies.add(PlayStrategy.PENTA)
+            if len(CardPatternChecker.find_cards_with_count(all_available_cards, 3)) > 0:
+                available_strategies.add(PlayStrategy.SPLIT_TRIPLE)
 
-        if (
-            len(CardPatternChecker.find_cards_with_count(all_no_split_cards, 6, True))
-            > 0
-        ):
-            available_strategies.add(PlayStrategy.MULTI)
+            if len(CardPatternChecker.find_cards_with_count(all_available_cards, 4)) > 0:
+                available_strategies.add(PlayStrategy.SPLIT_QUAD)
 
-        if len(CardPatternChecker.find_cards_with_count(all_available_cards, 1)) > 0:
-            available_strategies.add(PlayStrategy.SPLIT_SINGLE)
+            if len(CardPatternChecker.find_cards_with_count(all_available_cards, 5)) > 0:
+                available_strategies.add(PlayStrategy.SPLIT_PENTA)
 
-        if len(CardPatternChecker.find_cards_with_count(all_available_cards, 2)) > 0:
-            available_strategies.add(PlayStrategy.SPLIT_PAIR)
+            if (
+                len(CardPatternChecker.find_cards_with_count(
+                    all_available_cards, 6, True))
+                > 0
+            ):
+                available_strategies.add(PlayStrategy.SPLIT_MULTI)
 
-        if len(CardPatternChecker.find_cards_with_count(all_available_cards, 3)) > 0:
-            available_strategies.add(PlayStrategy.SPLIT_TRIPLE)
+            all_no_split_cards = (
+                CardPatternChecker.find_all_beating_combinations_without_splitting(
+                    hand_cards.cards, last_played_cards
+                )
+            )
 
-        if len(CardPatternChecker.find_cards_with_count(all_available_cards, 4)) > 0:
-            available_strategies.add(PlayStrategy.SPLIT_QUAD)
+            if len(all_no_split_cards) > 0:
+                # 如果有可以压过上家的出牌组合，则不允许 PASS
+                available_strategies.add(PlayStrategy.PLAY_MINIMAL_INTACT)
 
-        if len(CardPatternChecker.find_cards_with_count(all_available_cards, 5)) > 0:
-            available_strategies.add(PlayStrategy.SPLIT_PENTA)
+                if len(CardPatternChecker.find_cards_with_count(all_no_split_cards, 1)) > 0:
+                    available_strategies.add(PlayStrategy.SINGLE)
 
-        if (
-            len(CardPatternChecker.find_cards_with_count(all_available_cards, 6, True))
-            > 0
-        ):
-            available_strategies.add(PlayStrategy.SPLIT_MULTI)
+                if len(CardPatternChecker.find_cards_with_count(all_no_split_cards, 2)) > 0:
+                    available_strategies.add(PlayStrategy.PAIR)
+
+                if len(CardPatternChecker.find_cards_with_count(all_no_split_cards, 3)) > 0:
+                    available_strategies.add(PlayStrategy.TRIPLE)
+
+                if len(CardPatternChecker.find_cards_with_count(all_no_split_cards, 4)) > 0:
+                    available_strategies.add(PlayStrategy.QUAD)
+
+                if len(CardPatternChecker.find_cards_with_count(all_no_split_cards, 5)) > 0:
+                    available_strategies.add(PlayStrategy.PENTA)
+
+                if (
+                    len(CardPatternChecker.find_cards_with_count(
+                        all_no_split_cards, 6, True))
+                    > 0
+                ):
+                    available_strategies.add(PlayStrategy.MULTI)
+
+        if len(available_strategies) == 0:
+            raise ValueError("No available strategies")
 
         return available_strategies
+
+    # 写一个空的策略选择函数，根据传入的策略，返回一组牌
+    def select_strategy(self, player_id: int, strategy: PlayStrategy) -> List[Card]:
+        """
+        根据传入的策略，返回一组牌
+        """
+        # TODO: 实现策略选择逻辑
+        pass

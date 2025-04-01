@@ -1,4 +1,4 @@
-import esper
+import logging  # 日志记录模块
 from gouji.core import GoujiGame
 from gouji.core import DefaultAITurnHandler
 from gouji.core import HumanPlayerTurnHandler
@@ -13,6 +13,13 @@ if __name__ == "__main__":
     创建GoujiGame实例并启动游戏。
     当程序作为脚本直接运行时执行此代码块。
     """
+
+    # 配置日志系统
+    logging.basicConfig(
+        level=logging.INFO,  # 设置日志级别为INFO，低于此级别的日志不会显示
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",  # 设置日志格式
+        # filename="logs/debug.log",  # 将日志输出到文件
+    )
 
     game = GoujiGame()
 
