@@ -6,6 +6,7 @@ from ..components import PlayerComponent, Hand, TeamComponent, Card
 from ..utils import CardPatternChecker
 from ..interface import PlayerAction
 from typing import List, Tuple
+from ..systems import StrategySystem
 
 
 class DefaultAITurnHandler(TurnHandlerInterface):
