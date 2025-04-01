@@ -365,3 +365,40 @@ class CardPatternChecker:
 
         # 返回差值
         return value1 - value2
+
+    @staticmethod
+    def find_cards_with_count(
+        card_lists: List[List[Card]], count: int, allow_greater: bool = False
+    ) -> List[List[Card]]:
+        """
+        从卡牌列表集合中查找包含指定数量的卡牌列表
+
+        参数:
+            card_lists: 卡牌列表的集合
+            count: 需要查找的卡牌数量
+            allow_greater: 如果为True，也返回卡牌数量大于count的组合
+
+        返回:
+            List[List[Card]]: 符合数量要求的所有卡牌列表，如果没有找到则返回空列表
+
+        示例:
+            如果 card_lists = [[4,4,4], [5,5,5], [6,6,6,6], [7,7,7,7,7]]
+            - count=3, allow_greater=False 返回 [[4,4,4], [5,5,5]]
+            - count=3, allow_greater=True 返回 [[4,4,4], [5,5,5], [6,6,6,6], [7,7,7,7,7]]
+            - count=6, allow_greater=True 返回 [[7,7,7,7,7,7,7]]
+            - count=8, allow_greater=False 返回 []
+        """
+        matching_combinations = []
+
+        # 遍历所有卡牌组合
+        for cards in card_lists:
+            cards_count = len(cards)
+
+            # 精确匹配count
+            if cards_count == count:
+                matching_combinations.append(cards)
+            # 如果允许大于count的组合
+            elif allow_greater and cards_count > count:
+                matching_combinations.append(cards)
+
+        return matching_combinations

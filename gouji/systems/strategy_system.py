@@ -57,6 +57,12 @@ class StrategySystem(esper.Processor):
         hand_cards = esper.component_for_entity(player_entity, Hand)
         last_played_cards = play_system.last_played_cards
 
+        all_no_split_cards = (
+            CardPatternChecker.find_all_beating_combinations_without_splitting(
+                hand_cards.cards, last_played_cards
+            )
+        )
+
         # 所有可以压过上家的出牌组合
         all_available_cards: List[List[Card]] = (
             CardPatternChecker.find_all_beating_combinations(
@@ -65,5 +71,23 @@ class StrategySystem(esper.Processor):
         )
 
         available_strategies = set()
+
+        if len(CardPatternChecker.find_cards_with_count(hand_cards.cards, 1)) > 0:
+            available_strategies.add(PlayStrategy.SINGLE)
+
+        if len(CardPatternChecker.find_cards_with_count(hand_cards.cards, 2)) > 0:
+            available_strategies.add(PlayStrategy.PAIR)
+
+        if len(CardPatternChecker.find_cards_with_count(hand_cards.cards, 3)) > 0:
+            available_strategies.add(PlayStrategy.TRIPLE)
+
+        if len(CardPatternChecker.find_cards_with_count(hand_cards.cards, 4)) > 0:
+            available_strategies.add(PlayStrategy.QUAD)
+
+        if len(CardPatternChecker.find_cards_with_count(hand_cards.cards, 5)) > 0:
+            available_strategies.add(PlayStrategy.PENTA)
+
+        if len(CardPatternChecker.find_cards_with_count(hand_cards.cards, 5)) > 0:
+            available_strategies.add(PlayStrategy.PENTA)
 
         return available_strategies

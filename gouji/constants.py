@@ -174,12 +174,18 @@ class PlayStrategy(Enum):
     SMALL_JOKER_PLAY = "小王压制"
     PASS = "过牌"
 
-    SINGLE_PLAY = "出单牌"
-    PAIR_PLAY = "出对子"
-    THREE_OF_A_KIND_PLAY = "出三张相同点数的牌"
-    FOUR_OF_A_KIND_PLAY = "出四张相同点数的牌"
-    FIVE_OF_A_KIND_PLAY = "出五张相同点数的牌"
-    X_OF_A_KIND_PLAY = "出五张以上相同点数的牌"
+    SINGLE = "SINGLE"  # 单牌
+    PAIR = "PAIR"  # 对子
+    TRIPLE = "TRIPLE"  # 三张
+    QUAD = "QUAD"  # 四张
+    PENTA = "PENTA"  # 五张
+    MULTI = "MULTI"  # 五张以上
+    SPLIT_SINGLE = "SPLIT_SINGLE"  # 拆牌出单牌
+    SPLIT_PAIR = "SPLIT_PAIR"  # 拆牌出对子
+    SPLIT_TRIPLE = "SPLIT_TRIPLE"  # 拆牌出三张
+    SPLIT_QUAD = "SPLIT_QUAD"  # 拆牌出四张
+    SPLIT_PENTA = "SPLIT_PENTA"  # 拆牌出五张
+    SPLIT_MULTI = "SPLIT_MULTI"  # 拆牌出五张以上
 
     # 新增团队配合策略 ★
     FEDERAL_SUPPORT = "联邦救援"  # 帮助联邦队友解围出牌
