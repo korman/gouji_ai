@@ -48,8 +48,7 @@ class DefaultAITurnHandler(TurnHandlerInterface):
             if strategy_system is None:
                 raise ValueError("StrategySystem not found")
 
-            available_strategies = strategy_system.get_available_strategies(
-                player_id)
+            available_strategies = strategy_system.get_available_strategies(player_id)
 
             logging.info("AI 可用策略:")
             for strategy in available_strategies:
