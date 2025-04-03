@@ -66,7 +66,7 @@ class StrategySystem(esper.Processor):
 
         available_strategies = set()
 
-        if player_id != play_system.last_effective_player_id:
+        if player_id != play_system.last_effective_player_id and play_system.round_number > 1:
             # 如果当前玩家不是上家，则可以选择 PASS
             available_strategies.add(PlayStrategy.PASS)
 

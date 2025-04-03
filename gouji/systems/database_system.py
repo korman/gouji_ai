@@ -31,6 +31,7 @@ class DatabaseSystem(esper.Processor):
         self._current_table = None
         self._current_table_name = None
         self._pending_records = []  # 存储待提交的记录
+        self._is_init = False
 
         # 训练模式下是否记录
         self._record_training = True
@@ -73,6 +74,7 @@ class DatabaseSystem(esper.Processor):
         self._metadata.create_all(self._engine)
         self._session = self.Session()
         logging.debug(f"创建新的游戏记录表: {self._current_table_name}")
+        self._is_init = True
 
     def record_play(
         self,
@@ -96,6 +98,9 @@ class DatabaseSystem(esper.Processor):
             last_player_id (int, optional): 上一个出牌的玩家ID
             last_played_cards (list, optional): 上一个玩家打出的卡牌列表
         """
+        if not self._is_init:
+            return
+
         if not self._record_training and self._current_mode == "training":
             return
 
@@ -104,7 +109,8 @@ class DatabaseSystem(esper.Processor):
             return
 
         cards_str = (
-            ", ".join([card.get_rank_display() for card in cards]) if cards else ""
+            ", ".join([card.get_rank_display()
+                      for card in cards]) if cards else ""
         )
         current_hand_str = (
             ", ".join([card.get_rank_display() for card in current_hand])
@@ -157,6 +163,9 @@ class DatabaseSystem(esper.Processor):
             last_player_id (int, optional): 上一个出牌的玩家ID
             last_played_cards (list, optional): 上一个玩家打出的卡牌列表
         """
+        if not self._is_init:
+            return
+
         if not self._record_training and self._current_mode == "training":
             return
 
@@ -209,7 +218,8 @@ class DatabaseSystem(esper.Processor):
 
         try:
             # 批量插入所有待处理记录
-            self._session.execute(self._current_table.insert(), self._pending_records)
+            self._session.execute(
+                self._current_table.insert(), self._pending_records)
             self._session.commit()
             self._pending_records.clear()
         except Exception as e:

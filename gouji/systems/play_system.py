@@ -30,11 +30,11 @@ class PlaySystem(esper.Processor):
         self._last_effective_player_id = None
         self._turn_handlers = {}  # 回合处理器字典
 
-        # 新增：用于跟踪当前回合中选择过牌的玩家
+        # 用于跟踪当前回合中选择过牌的玩家
         self._passed_players = set()
         self._active_players = PLAYER_COUNT
 
-        # 新增当前回合数
+        # 当前回合数
         self._round_number = 0
 
     def __del__(self):
@@ -94,7 +94,8 @@ class PlaySystem(esper.Processor):
                         for id in range(6)
                         if id not in game_state.players_without_cards
                     )
-                    last_player_name = self.get_player_name_by_id(last_player_id)
+                    last_player_name = self.get_player_name_by_id(
+                        last_player_id)
                     logging.debug(f"\n🎮 游戏结束! {last_player_name} 成为最后一名!")
                     game_state.phase = "game_over"
 
@@ -129,7 +130,8 @@ class PlaySystem(esper.Processor):
                     game_state, current_player_id, self
                 )
 
-                current_player_name = self.get_player_name_by_id(current_player_id)
+                current_player_name = self.get_player_name_by_id(
+                    current_player_id)
 
                 # 处理玩家的出牌动作
                 if action == PlayerAction.PLAY:
@@ -151,7 +153,8 @@ class PlaySystem(esper.Processor):
                         logging.warning("错误: 无法打出这些牌，请选择其他牌")
                         continue
 
-                    current_entity = self.get_player_entity_by_id(current_player_id)
+                    current_entity = self.get_player_entity_by_id(
+                        current_player_id)
 
                     hand = esper.component_for_entity(current_entity, Hand)
 
@@ -161,7 +164,8 @@ class PlaySystem(esper.Processor):
 
                     # 显示打出的牌
                     ranks = [card.get_rank_display() for card in cards]
-                    logging.debug(f"{current_player_name} 打出了: {' '.join(ranks)}")
+                    logging.debug(
+                        f"{current_player_name} 打出了: {' '.join(ranks)}")
 
                     # 输出剩余手牌数量
                     logging.debug(
@@ -189,13 +193,13 @@ class PlaySystem(esper.Processor):
 
                     # 更新最后出的牌
                     self._last_played_cards = cards
-
                     self._last_effective_player_id = current_player_id
                     self._passed_players.clear()  # 清空过牌玩家列表
                 elif action == PlayerAction.PASS:
                     logging.debug(f"{current_player_name} 选择PASS")
                     # 输出剩余手牌数量
-                    current_entity = self.get_player_entity_by_id(current_player_id)
+                    current_entity = self.get_player_entity_by_id(
+                        current_player_id)
                     hand = esper.component_for_entity(current_entity, Hand)
                     logging.debug(
                         f"{current_player_name} 剩余手牌数量: {len(hand.cards)}"
@@ -290,7 +294,7 @@ class PlaySystem(esper.Processor):
         cards_per_row = 10
 
         for i in range(0, len(cards), cards_per_row):
-            row_cards = cards[i : i + cards_per_row]
+            row_cards = cards[i: i + cards_per_row]
             logging.debug(" ".join(row_cards))
         logging.debug()
 
@@ -414,3 +418,7 @@ class PlaySystem(esper.Processor):
                     result[player.player_id] = 0
 
         return result
+
+    @property
+    def round_number(self) -> int:
+        return self._round_number

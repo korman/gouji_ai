@@ -21,15 +21,18 @@ if __name__ == "__main__":
         # filename="logs/debug.log",  # 将日志输出到文件
     )
 
-    game = GoujiGame()
+    for round in range(1000):
+        game = GoujiGame(f"world_{round}")
 
-    # 为玩家0注册人类处理器
-    # game.register_handlers_for_players([0], HumanPlayerTurnHandler)
+        # 为玩家0注册人类处理器
+        # game.register_handlers_for_players([0], HumanPlayerTurnHandler)
 
-    # 为玩家1-5注册AI处理器
-    game.register_handlers_for_players(list(range(0, 6)), DefaultAITurnHandler)
+        # 为玩家1-5注册AI处理器
+        game.register_handlers_for_players(
+            list(range(0, 6)), DefaultAITurnHandler)
 
-    # 创建6个默认AI处理器，并且注册到游戏中
-    # game.register_handlers_for_players(list(range(6)), DefaultAITurnHandler)
+        # 创建6个默认AI处理器，并且注册到游戏中
+        # game.register_handlers_for_players(list(range(6)), DefaultAITurnHandler)
 
-    game.run()
+        game.run()
+        logging.info(f"第{round}局结束！")
