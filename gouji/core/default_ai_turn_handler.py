@@ -52,13 +52,8 @@ class DefaultAITurnHandler(TurnHandlerInterface):
             available_strategies = strategy_system.get_available_strategies(
                 player_id)
 
-            # logging.info("AI 可用策略:")
-            # for strategy in available_strategies:
-            #     logging.info(f"策略: {strategy}")
-
             # 随机选择一个策略
             selected_strategy = random.choice(list(available_strategies))
-            # logging.info(f"AI 选择的策略: {selected_strategy}")
             select_strategy_cards: List[Card] = strategy_system.select_strategy(
                 player_id, selected_strategy)
 
@@ -66,26 +61,3 @@ class DefaultAITurnHandler(TurnHandlerInterface):
                 return PlayerAction.PASS, []
             else:
                 return PlayerAction.PLAY, select_strategy_cards
-
-            # # 找出能压过上一手牌的组合
-            # beating_combinations = CardPatternChecker.find_all_beating_combinations(
-            #     hand.cards, last_played_cards
-            # )
-
-            # if not beating_combinations:
-            #     # 没有能压过的组合，选择 PASS
-            #     # 循环输出last_played_cards
-
-            #     if last_played_cards is not None:
-            #         logging.debug("上一手牌:")
-            #         for card in last_played_cards:
-            #             logging.debug(f"{card}")
-            #     else:
-            #         logging.debug("上一手牌为空")
-
-            #     return PlayerAction.PASS, []
-
-            # current_played_cards = random.choice(beating_combinations)
-
-            # # 打出选择的牌
-            # return PlayerAction.PLAY, current_played_cards
