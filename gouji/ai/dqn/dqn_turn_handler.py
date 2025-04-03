@@ -88,7 +88,8 @@ class DQNTurnHandler(TurnHandlerInterface):
         self._target_model.load_state_dict(self._model.state_dict())
 
         # 优化器
-        self._optimizer = optim.Adam(self._model.parameters(), lr=self._learning_rate)
+        self._optimizer = optim.Adam(
+            self._model.parameters(), lr=self._learning_rate)
 
         # 经验回放
         self._replay_buffer = ReplayBuffer(capacity=20000)
@@ -266,7 +267,8 @@ class DQNTurnHandler(TurnHandlerInterface):
         dones = torch.FloatTensor(dones)
 
         # 计算当前Q值
-        current_q = self._model(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+        current_q = self._model(states).gather(
+            1, actions.unsqueeze(1)).squeeze(1)
 
         # 计算目标Q值
         next_q = self._target_model(next_states).detach().max(1)[0]
@@ -331,7 +333,8 @@ class DQNTurnHandler(TurnHandlerInterface):
         last_played_cards = play_system.last_played_cards
 
         # 获取其他玩家手牌数量
-        other_players_cards = play_system.get_other_players_card_count(player_id)
+        other_players_cards = play_system.get_other_players_card_count(
+            player_id)
 
         # 编码当前状态
         current_state = self.encode_state(
@@ -339,7 +342,8 @@ class DQNTurnHandler(TurnHandlerInterface):
         )
 
         # 构建动作映射
-        valid_actions = self.build_action_mapping(hand.cards, last_played_cards)
+        valid_actions = self.build_action_mapping(
+            hand.cards, last_played_cards)
 
         # 如果是训练模式且有上一状态，记录奖励
         if self._training_mode and self._last_state is not None:
@@ -425,7 +429,8 @@ class DQNTurnHandler(TurnHandlerInterface):
         """从文件加载模型"""
         checkpoint = torch.load(filepath, weights_only=False)
         self._model.load_state_dict(checkpoint["model_state_dict"])
-        self._target_model.load_state_dict(checkpoint["target_model_state_dict"])
+        self._target_model.load_state_dict(
+            checkpoint["target_model_state_dict"])
         self._optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         self._epsilon = checkpoint["epsilon"]
         self._train_counter = checkpoint["train_counter"]
