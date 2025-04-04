@@ -10,7 +10,7 @@ from gouji.components import PlayerComponent, Hand, TeamComponent, Card
 from gouji.utils import CardPatternChecker
 from .dqn_network import DQNNetwork
 from .replay_buffer import ReplayBuffer
-from gouji.constants import MAX_HAND_SIZE
+from gouji.constants import MAX_HAND_SIZE, PlayStrategy
 from gouji.interface import PlayerAction
 from ..ai_personality import AIPersonality, RANK_REWARDS
 
@@ -78,9 +78,9 @@ class DQNTurnHandler(TurnHandlerInterface):
         self._state_size = self._rank_range * 2 + 5
 
         # 动作空间大小 (动作ID到实际牌组合的映射)
-        self._action_size = 500  # 从200增加到500
-        self._action_mapping = {}  # 动作ID -> 牌组合
-        self._reverse_action_mapping = {}  # 牌组合的哈希 -> 动作ID
+        self._action_size = len(PlayStrategy)  # 使用PlayStrategy枚举类的长度
+        self._action_mapping = {}  # 动作ID -> 策略类型
+        self._reverse_action_mapping = {}  # 策略类型 -> 动作ID
 
         # 创建模型
         self._model = DQNNetwork(self._state_size, self._action_size)
@@ -115,7 +115,8 @@ class DQNTurnHandler(TurnHandlerInterface):
 
     def encode_state(self, hand_cards, last_played_cards, player_info):
         """
-        将游戏状态编码为神经网络输入向量（只考虑牌值）
+        将游戏状态编码为神经网络输入向量，增强对策略特征的表示
+        适应4副牌情况下可能出现的多张同值牌
 
         参数:
             hand_cards: 当前玩家手牌
@@ -125,31 +126,68 @@ class DQNTurnHandler(TurnHandlerInterface):
         返回:
             numpy数组: 状态向量
         """
-        state = np.zeros(self._state_size)
+        # 基础状态编码（保持原有编码方式）
+        state = np.zeros(self._state_size + 12)  # 增加特征位，包含更多牌型统计
 
-        # 计算手牌中每个牌值的数量
+        # 计算手牌中每个牌值的数量（保持不变）
         hand_rank_counts = np.zeros(self._rank_range)
         for card in hand_cards:
             rank_index = card.rank.get_value() - 3
             hand_rank_counts[rank_index] += 1
 
-        for i in range(self._rank_range - 2):  # 减去大小王的2个索引
+        # 编码手牌中每个牌值的数量（保持不变）
+        for i in range(self._rank_range - 2):
             state[i] = hand_rank_counts[i] / 16.0  # 4副牌×4张=16张普通牌
 
-        # 对大小王（最后2个索引）
-        state[self._rank_range - 2] = (
-            hand_rank_counts[self._rank_range - 2] / 4.0
-        )  # 小王最多4张
-        state[self._rank_range - 1] = (
-            hand_rank_counts[self._rank_range - 1] / 4.0
-        )  # 大王最多4张
+        # 对大小王（保持不变）
+        state[self._rank_range -
+              2] = hand_rank_counts[self._rank_range - 2] / 4.0  # 小王最多4张
+        state[self._rank_range -
+              1] = hand_rank_counts[self._rank_range - 1] / 4.0  # 大王最多4张
 
-        # 编码其他玩家手牌数量 (最后5位)
+        # 编码对手出牌信息
+        if last_played_cards:
+            last_played_rank_counts = np.zeros(self._rank_range)
+            for card in last_played_cards:
+                rank_index = card.rank.get_value() - 3
+                last_played_rank_counts[rank_index] += 1
+
+            for i in range(self._rank_range):
+                state[self._rank_range + i] = last_played_rank_counts[i] / 16.0
+
+        # 编码其他玩家手牌数量（保持不变）
         for i, count in enumerate(player_info):
-            if i < 5:  # 只考虑其他5个玩家
-                state[2 * self._rank_range + i] = min(
-                    count / MAX_HAND_SIZE, 1.0
-                )  # 归一化，假设最多MAX_HAND_SIZE张牌
+            if i < 5:
+                state[2 * self._rank_range +
+                      i] = min(count / MAX_HAND_SIZE, 1.0)
+
+        # === 新增策略相关特征（已考虑多张牌的情况） ===
+        feature_start_index = 2 * self._rank_range + 5
+
+        # 特征1: 手牌中各种牌型数量（单牌到多张）
+        singles, pairs, triples, quads, pentas, multi_cards = self._count_card_patterns(
+            hand_cards)
+        state[feature_start_index] = singles / max(len(hand_cards), 1)  # 单牌比例
+        state[feature_start_index + 1] = pairs * 2 / \
+            max(len(hand_cards), 1)  # 对子比例 (×2因为每个对子有2张牌)
+        state[feature_start_index + 2] = triples * \
+            3 / max(len(hand_cards), 1)  # 三张比例
+        state[feature_start_index + 3] = quads * \
+            4 / max(len(hand_cards), 1)  # 四张比例
+        state[feature_start_index + 4] = pentas * \
+            5 / max(len(hand_cards), 1)  # 五张比例
+        state[feature_start_index + 5] = multi_cards / \
+            max(len(hand_cards), 1)  # 五张以上的比例
+
+        # 特征2: 各种牌型的数量统计
+        state[feature_start_index + 6] = singles / 15.0  # 假设最多15个单牌
+        state[feature_start_index + 7] = pairs / 8.0  # 假设最多8个对子
+        state[feature_start_index + 8] = triples / 5.0  # 假设最多5个三张
+        state[feature_start_index + 9] = quads / 4.0  # 假设最多4个四张
+        state[feature_start_index + 10] = pentas / 3.0  # 假设最多3个五张
+        # 假设最多2个六张及以上
+        state[feature_start_index +
+              11] = (sum(1 for count in hand_rank_counts if count > 5) / 2.0)
 
         return state
 
@@ -193,61 +231,79 @@ class DQNTurnHandler(TurnHandlerInterface):
             # 更新模型
             self.update_model()
 
-    def build_action_mapping(self, hand_cards, last_played_cards):
+    def build_action_mapping(self):
         """
-        构建动作映射，将可能的出牌组合映射到动作ID
-        只考虑牌值，忽略花色
-
-        参数:
-            hand_cards: 当前手牌
-            last_played_cards: 上一手牌
+        构建动作映射，将所有出牌策略映射到动作ID
+        每个策略对应一个动作ID，而不是每个具体牌组
 
         返回:
-            int: 有效动作的数量
+            int: 有效动作的数量（策略数量）
         """
         self._action_mapping = {}
         self._reverse_action_mapping = {}
 
-        # 添加PASS选项
-        self._action_mapping[0] = []
-        self._reverse_action_mapping["pass"] = 0
+        # 清空之前的映射
+        action_id = 0
 
-        # 获取所有可能的出牌组合
-        beating_combinations = CardPatternChecker.find_all_beating_combinations(
-            hand_cards, last_played_cards
-        )
-
-        # 为每个组合分配一个动作ID
-        for i, combo in enumerate(beating_combinations):
-            self._action_mapping[i + 1] = combo
-            # 只使用牌值而忽略花色进行哈希
-            combo_key = "-".join(sorted([str(c.rank.value) for c in combo]))
-            self._reverse_action_mapping[combo_key] = i + 1
+        # 为每个策略分配一个动作ID
+        for strategy in PlayStrategy:
+            self._action_mapping[action_id] = strategy  # 动作ID -> 策略
+            self._reverse_action_mapping[strategy] = action_id  # 策略 -> 动作ID
+            action_id += 1
 
         return len(self._action_mapping)
 
-    def select_action(self, state, valid_actions):
+    def get_action_mask(self, hand_cards, last_played_cards):
         """
-        根据当前状态和探索率选择动作
+        根据当前回合状态生成动作掩码（有效策略）
+
+        参数:
+            hand_cards: 当前玩家手牌
+            last_played_cards: 上一手牌
+
+        返回:
+            List[int]: 动作掩码，长度为 |PlayStrategy|（有效策略为 1，其他为 0）
+        """
+        # 获取当前可用的策略列表
+        available_strategies = self.build_available_strategies(
+            hand_cards, last_played_cards)
+
+        # 初始化掩码，默认为 0（表示无效）
+        action_mask = [0] * len(self._action_mapping)
+
+        # 将有效的策略对应的掩码置为 1
+        for strategy in available_strategies:
+            action_id = self._reverse_action_mapping[strategy]
+            action_mask[action_id] = 1
+
+        return action_mask
+
+    def select_action(self, state, action_mask, epsilon):
+        """
+        根据当前状态选择动作，考虑动作掩码。
 
         参数:
             state: 当前状态
-            valid_actions: 有效动作数
+            action_mask: 当前有效动作掩码
+            epsilon: 探索概率
 
         返回:
             int: 选择的动作ID
         """
-        if self._training_mode and random.random() < self._epsilon:
-            # 探索: 随机选择一个有效动作
-            return random.randint(0, valid_actions - 1)
+        if np.random.rand() < epsilon:
+            # 探索：从有效动作中随机选择
+            valid_actions = [i for i, valid in enumerate(
+                action_mask) if valid == 1]
+            return np.random.choice(valid_actions)
         else:
-            # 利用: 选择Q值最高的动作
-            state_tensor = torch.FloatTensor(state).unsqueeze(0)
-            q_values = self._model(state_tensor).detach().numpy()[0]
+            # 利用：选择 Q 值最高的有效动作
+            q_values = self._model.predict(state)[0]
 
-            # 只考虑有效动作
-            valid_q_values = q_values[:valid_actions]
-            return np.argmax(valid_q_values)
+            # 使用掩码将无效动作的 Q 值设置为一个极小值
+            masked_q_values = q_values + (np.array(action_mask) - 1) * 1e9
+
+            # 返回有效动作中 Q 值最高的动作
+            return np.argmax(masked_q_values)
 
     def update_model(self):
         """训练DQN模型"""
@@ -293,18 +349,18 @@ class DQNTurnHandler(TurnHandlerInterface):
                 self._epsilon_min,
             )
 
-    def record_experience(self, state, action, reward, next_state, done):
+    def record_experience(self, state, strategy_id, reward, next_state, done):
         """
         记录经验到回放缓冲区
 
         参数:
             state: 当前状态
-            action: 选择的动作
+            strategy_id: 选择的策略ID
             reward: 获得的奖励
             next_state: 下一个状态
             done: 是否结束
         """
-        self._replay_buffer.add(state, action, reward, next_state, done)
+        self._replay_buffer.add(state, strategy_id, reward, next_state, done)
         # 累计本轮奖励
         self._episode_reward = reward
 
@@ -435,6 +491,40 @@ class DQNTurnHandler(TurnHandlerInterface):
         self._epsilon = checkpoint["epsilon"]
         self._train_counter = checkpoint["train_counter"]
         logging.info(f"模型已从: {filepath} 加载")
+
+    def _count_card_patterns(self, cards):
+        """
+        统计手牌中各种牌型数量，包括单牌、对子、三张、四张、五张和更多
+
+        参数:
+            cards: 手牌列表
+
+        返回:
+            Tuple: (单牌数, 对子数, 三张数, 四张数, 五张数, 六张及以上的牌数)
+        """
+        if not cards:
+            return 0, 0, 0, 0, 0, 0
+
+        # 按牌值分组
+        rank_groups = {}
+        for card in cards:
+            rank = card.rank.get_value()
+            if rank not in rank_groups:
+                rank_groups[rank] = []
+            rank_groups[rank].append(card)
+
+        # 统计各类牌型
+        singles = sum(1 for cards in rank_groups.values() if len(cards) == 1)
+        pairs = sum(1 for cards in rank_groups.values() if len(cards) == 2)
+        triples = sum(1 for cards in rank_groups.values() if len(cards) == 3)
+        quads = sum(1 for cards in rank_groups.values() if len(cards) == 4)
+        pentas = sum(1 for cards in rank_groups.values() if len(cards) == 5)
+
+        # 统计六张及以上
+        multi_cards_total = sum(len(cards)
+                                for cards in rank_groups.values() if len(cards) > 5)
+
+        return singles, pairs, triples, quads, pentas, multi_cards_total
 
     def set_training_mode(self, training=True):
         """设置训练模式"""
