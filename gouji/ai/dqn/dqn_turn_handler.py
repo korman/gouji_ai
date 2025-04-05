@@ -13,6 +13,7 @@ from .replay_buffer import ReplayBuffer
 from gouji.constants import MAX_HAND_SIZE, PlayStrategy
 from gouji.interface import PlayerAction
 from ..ai_personality import AIPersonality, RANK_REWARDS
+from gouji.systems import StrategySystem
 
 
 class DQNTurnHandler(TurnHandlerInterface):
@@ -112,6 +113,16 @@ class DQNTurnHandler(TurnHandlerInterface):
 
         # 连续PASS次数
         self._consecutive_passes = 0
+        self._action_mapping = self._initialize_action_mapping()
+
+    def _initialize_action_mapping(self):
+        """
+        初始化动作映射，将 PlayStrategy 枚举中每个策略映射到唯一的动作 ID
+        """
+        action_mapping = {}
+        for idx, strategy in enumerate(PlayStrategy):
+            action_mapping[idx] = strategy  # 动作 ID -> 策略枚举项
+        return action_mapping
 
     def encode_state(self, hand_cards, last_played_cards, player_info):
         """
@@ -253,32 +264,29 @@ class DQNTurnHandler(TurnHandlerInterface):
 
         return len(self._action_mapping)
 
-    def get_action_mask(self, hand_cards, last_played_cards):
+    def get_action_mask(self, available_strategies):
         """
-        根据当前回合状态生成动作掩码（有效策略）
+        根据当前可用策略生成动作掩码
 
         参数:
-            hand_cards: 当前玩家手牌
-            last_played_cards: 上一手牌
+            available_strategies: 当前回合可用的策略列表（已包含PASS如果可用）
 
         返回:
-            List[int]: 动作掩码，长度为 |PlayStrategy|（有效策略为 1，其他为 0）
+            action_mask: 动作掩码数组，1表示可用，0表示不可用
         """
-        # 获取当前可用的策略列表
-        available_strategies = self.build_available_strategies(
-            hand_cards, last_played_cards)
+        # 初始化全0掩码数组
+        action_mask = np.zeros(len(self._action_mapping))
 
-        # 初始化掩码，默认为 0（表示无效）
-        action_mask = [0] * len(self._action_mapping)
-
-        # 将有效的策略对应的掩码置为 1
+        # 遍历所有可用策略，将对应的动作ID设为可用
         for strategy in available_strategies:
-            action_id = self._reverse_action_mapping[strategy]
-            action_mask[action_id] = 1
+            for action_id, mapped_strategy in self._action_mapping.items():
+                if mapped_strategy == strategy:
+                    action_mask[action_id] = 1
+                    break  # 找到匹配项后跳出内循环
 
         return action_mask
 
-    def select_action(self, state, action_mask, epsilon):
+    def select_action(self, state, action_mask):
         """
         根据当前状态选择动作，考虑动作掩码。
 
@@ -290,7 +298,7 @@ class DQNTurnHandler(TurnHandlerInterface):
         返回:
             int: 选择的动作ID
         """
-        if np.random.rand() < epsilon:
+        if np.random.rand() < self._epsilon:
             # 探索：从有效动作中随机选择
             valid_actions = [i for i, valid in enumerate(
                 action_mask) if valid == 1]
@@ -397,9 +405,19 @@ class DQNTurnHandler(TurnHandlerInterface):
             hand.cards, last_played_cards, other_players_cards
         )
 
+        strategy_system: StrategySystem = esper.get_processor(
+            StrategySystem)
+        if strategy_system is None:
+            raise ValueError("StrategySystem not found")
+
+        # 获得当前可以使用的所有策略
+        available_strategies = strategy_system.get_available_strategies(
+            player_id)
+
         # 构建动作映射
-        valid_actions = self.build_action_mapping(
-            hand.cards, last_played_cards)
+        valid_actions = self.get_action_mask(available_strategies)
+
+        selected_action = self.select_action(current_state, valid_actions)
 
         # 如果是训练模式且有上一状态，记录奖励
         if self._training_mode and self._last_state is not None:
@@ -446,12 +464,12 @@ class DQNTurnHandler(TurnHandlerInterface):
             self._reward += reward
 
         # 选择动作
-        action_id = self.select_action(current_state, valid_actions)
-        selected_cards = self._action_mapping[action_id]
+        selected_cards = strategy_system.select_strategy(
+            player_id, selected_action)
 
         # 记录当前状态和动作，以便下一回合使用
         self._last_state = current_state
-        self._last_action = action_id
+        self._last_action = selected_action
 
         # 根据选择的动作返回
         if not selected_cards:  # PASS

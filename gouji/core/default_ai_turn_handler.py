@@ -45,7 +45,8 @@ class DefaultAITurnHandler(TurnHandlerInterface):
         last_played_cards = play_system.last_played_cards
 
         if hand:
-            strategy_system = esper.get_processor(StrategySystem)
+            strategy_system: StrategySystem = esper.get_processor(
+                StrategySystem)
             if strategy_system is None:
                 raise ValueError("StrategySystem not found")
 
