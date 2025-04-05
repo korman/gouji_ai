@@ -21,7 +21,7 @@ if __name__ == "__main__":
         # filename="logs/debug.log",  # 将日志输出到文件
     )
 
-    for round in range(1000):
+    for round in range(1):
         game = GoujiGame(f"world_{round}")
 
         # 为玩家0注册人类处理器
