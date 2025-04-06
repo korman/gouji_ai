@@ -242,28 +242,6 @@ class DQNTurnHandler(TurnHandlerInterface):
             # 更新模型
             self.update_model()
 
-    def build_action_mapping(self):
-        """
-        构建动作映射，将所有出牌策略映射到动作ID
-        每个策略对应一个动作ID，而不是每个具体牌组
-
-        返回:
-            int: 有效动作的数量（策略数量）
-        """
-        self._action_mapping = {}
-        self._reverse_action_mapping = {}
-
-        # 清空之前的映射
-        action_id = 0
-
-        # 为每个策略分配一个动作ID
-        for strategy in PlayStrategy:
-            self._action_mapping[action_id] = strategy  # 动作ID -> 策略
-            self._reverse_action_mapping[strategy] = action_id  # 策略 -> 动作ID
-            action_id += 1
-
-        return len(self._action_mapping)
-
     def get_action_mask(self, available_strategies):
         """
         根据当前可用策略生成动作掩码
@@ -302,7 +280,9 @@ class DQNTurnHandler(TurnHandlerInterface):
             # 探索：从有效动作中随机选择
             valid_actions = [i for i, valid in enumerate(
                 action_mask) if valid == 1]
-            return np.random.choice(valid_actions)
+            
+            re_value = np.random.choice(valid_actions)
+            return  re_value
         else:
             # 利用：选择 Q 值最高的有效动作
             q_values = self._model.predict(state)[0]
