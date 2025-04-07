@@ -285,8 +285,16 @@ class DQNTurnHandler(TurnHandlerInterface):
             # 探索：从有效动作中随机选择
             valid_actions = [i for i, valid in enumerate(action_mask) if valid == 1]
 
-            re_value = np.random.choice(valid_actions)
-            return re_value
+            # 随机选择一个动作索引
+            selected_index = np.random.choice(valid_actions)
+
+            # 将索引转换为对应的枚举成员
+            enum_members = list(PlayStrategy)  # 获取所有枚举成员的列表
+            selected_strategy = enum_members[
+                selected_index
+            ]  # 根据索引获取对应的枚举成员
+
+            return selected_strategy  # 返回枚举成员而不是索引
         else:
             # 利用：选择 Q 值最高的有效动作
             q_values = self._model.predict(state)[0]
