@@ -89,7 +89,8 @@ class DQNTurnHandler(TurnHandlerInterface):
         self._target_model.load_state_dict(self._model.state_dict())
 
         # 优化器
-        self._optimizer = optim.Adam(self._model.parameters(), lr=self._learning_rate)
+        self._optimizer = optim.Adam(
+            self._model.parameters(), lr=self._learning_rate)
 
         # 经验回放
         self._replay_buffer = ReplayBuffer(capacity=20000)
@@ -170,7 +171,8 @@ class DQNTurnHandler(TurnHandlerInterface):
         # 编码其他玩家手牌数量（保持不变）
         for i, count in enumerate(player_info):
             if i < 5:
-                state[2 * self._rank_range + i] = min(count / MAX_HAND_SIZE, 1.0)
+                state[2 * self._rank_range +
+                      i] = min(count / MAX_HAND_SIZE, 1.0)
 
         # === 新增策略相关特征（已考虑多张牌的情况） ===
         feature_start_index = 2 * self._rank_range + 5
@@ -186,7 +188,8 @@ class DQNTurnHandler(TurnHandlerInterface):
         state[feature_start_index + 2] = (
             triples * 3 / max(len(hand_cards), 1)
         )  # 三张比例
-        state[feature_start_index + 3] = quads * 4 / max(len(hand_cards), 1)  # 四张比例
+        state[feature_start_index + 3] = quads * \
+            4 / max(len(hand_cards), 1)  # 四张比例
         state[feature_start_index + 4] = (
             pentas * 5 / max(len(hand_cards), 1)
         )  # 五张比例
@@ -283,7 +286,8 @@ class DQNTurnHandler(TurnHandlerInterface):
         """
         if np.random.rand() < self._epsilon:
             # 探索：从有效动作中随机选择
-            valid_actions = [i for i, valid in enumerate(action_mask) if valid == 1]
+            valid_actions = [i for i, valid in enumerate(
+                action_mask) if valid == 1]
 
             # 随机选择一个动作索引
             selected_index = np.random.choice(valid_actions)
@@ -323,7 +327,8 @@ class DQNTurnHandler(TurnHandlerInterface):
         dones = torch.FloatTensor(dones)
 
         # 计算当前Q值
-        current_q = self._model(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+        current_q = self._model(states).gather(
+            1, actions.unsqueeze(1)).squeeze(1)
 
         # 计算目标Q值
         next_q = self._target_model(next_states).detach().max(1)[0]
@@ -388,7 +393,8 @@ class DQNTurnHandler(TurnHandlerInterface):
         last_played_cards = play_system.last_played_cards
 
         # 获取其他玩家手牌数量
-        other_players_cards = play_system.get_other_players_card_count(player_id)
+        other_players_cards = play_system.get_other_players_card_count(
+            player_id)
 
         # 编码当前状态
         current_state = self.encode_state(
@@ -400,7 +406,8 @@ class DQNTurnHandler(TurnHandlerInterface):
             raise ValueError("StrategySystem not found")
 
         # 获得当前可以使用的所有策略
-        available_strategies = strategy_system.get_available_strategies(player_id)
+        available_strategies = strategy_system.get_available_strategies(
+            player_id)
 
         # 构建动作映射
         valid_actions = self.get_action_mask(available_strategies)
@@ -452,7 +459,8 @@ class DQNTurnHandler(TurnHandlerInterface):
             self._reward += reward
 
         # 选择动作
-        selected_cards = strategy_system.select_strategy(player_id, selected_action)
+        selected_cards = strategy_system.select_strategy(
+            player_id, selected_action)
 
         # 记录当前状态和动作，以便下一回合使用
         self._last_state = current_state
@@ -490,7 +498,8 @@ class DQNTurnHandler(TurnHandlerInterface):
         """从文件加载模型"""
         checkpoint = torch.load(filepath, weights_only=False)
         self._model.load_state_dict(checkpoint["model_state_dict"])
-        self._target_model.load_state_dict(checkpoint["target_model_state_dict"])
+        self._target_model.load_state_dict(
+            checkpoint["target_model_state_dict"])
         self._optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         self._epsilon = checkpoint["epsilon"]
         self._train_counter = checkpoint["train_counter"]
