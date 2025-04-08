@@ -84,8 +84,8 @@ class DQNTurnHandler(TurnHandlerInterface):
         self._reverse_action_mapping = {}  # 策略类型 -> 动作ID
 
         # 创建模型
-        self._model = DQNNetwork(self._state_size, self._action_size)
-        self._target_model = DQNNetwork(self._state_size, self._action_size)
+        self._model = DQNNetwork(47, self._action_size)
+        self._target_model = DQNNetwork(47, self._action_size)
         self._target_model.load_state_dict(self._model.state_dict())
 
         # 优化器
@@ -319,9 +319,11 @@ class DQNTurnHandler(TurnHandlerInterface):
             self._batch_size
         )
 
+        action_values = [action.value for action in actions]  # 提取每个枚举的数值
+
         # 转换为张量
         states = torch.FloatTensor(np.array(states))
-        actions = torch.LongTensor(actions)
+        actions = torch.LongTensor(action_values)  # 直接创建LongTensor
         rewards = torch.FloatTensor(rewards)
         next_states = torch.FloatTensor(np.array(next_states))
         dones = torch.FloatTensor(dones)

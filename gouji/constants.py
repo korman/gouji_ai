@@ -166,27 +166,27 @@ class ScoringRules:
 
 class PlayStrategy(Enum):
     # 基础策略（原有）
-    PLAY_MINIMAL = "出最小值的一组牌"
-    PLAY_MINIMAL_INTACT = "出最小值的一组牌（不拆牌）"
-    SPLIT_PLAY = "拆牌压制"
-    BOMB_PLAY = "炸弹压制"
-    LONG_CHAIN_PLAY = "出5个以上的小值牌"
-    BIG_JOKER_PLAY = "大王压制"
-    SMALL_JOKER_PLAY = "小王压制"
-    PASS = "过牌"
+    PLAY_MINIMAL = 0
+    PLAY_MINIMAL_INTACT = 1
+    SPLIT_PLAY = 2
+    BOMB_PLAY = 3
+    LONG_CHAIN_PLAY = 4
+    BIG_JOKER_PLAY = 5
+    SMALL_JOKER_PLAY = 6
+    PASS = 7
 
-    SINGLE = "SINGLE"  # 单牌
-    PAIR = "PAIR"  # 对子
-    TRIPLE = "TRIPLE"  # 三张
-    QUAD = "QUAD"  # 四张
-    PENTA = "PENTA"  # 五张
-    MULTI = "MULTI"  # 五张以上
-    SPLIT_SINGLE = "SPLIT_SINGLE"  # 拆牌出单牌
-    SPLIT_PAIR = "SPLIT_PAIR"  # 拆牌出对子
-    SPLIT_TRIPLE = "SPLIT_TRIPLE"  # 拆牌出三张
-    SPLIT_QUAD = "SPLIT_QUAD"  # 拆牌出四张
-    SPLIT_PENTA = "SPLIT_PENTA"  # 拆牌出五张
-    SPLIT_MULTI = "SPLIT_MULTI"  # 拆牌出五张以上
+    SINGLE = 8
+    PAIR = 9
+    TRIPLE = 10
+    QUAD = 11
+    PENTA = 12
+    MULTI = 13
+    SPLIT_SINGLE = 14
+    SPLIT_PAIR = 15
+    SPLIT_TRIPLE = 16
+    SPLIT_QUAD = 17
+    SPLIT_PENTA = 18
+    SPLIT_MULTI = 19
 
     # # 新增团队配合策略 ★
     # FEDERAL_SUPPORT = "联邦救援"  # 帮助联邦队友解围出牌
