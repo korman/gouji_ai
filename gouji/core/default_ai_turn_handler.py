@@ -45,11 +45,13 @@ class DefaultAITurnHandler(TurnHandlerInterface):
         last_played_cards = play_system.last_played_cards
 
         if hand:
-            strategy_system: StrategySystem = esper.get_processor(StrategySystem)
+            strategy_system: StrategySystem = esper.get_processor(
+                StrategySystem)
             if strategy_system is None:
                 raise ValueError("StrategySystem not found")
 
-            available_strategies = strategy_system.get_available_strategies(player_id)
+            available_strategies = strategy_system.get_available_strategies(
+                player_id)
 
             # 随机选择一个策略
             selected_strategy = random.choice(list(available_strategies))
